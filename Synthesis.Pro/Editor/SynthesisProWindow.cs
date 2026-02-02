@@ -33,7 +33,7 @@ namespace Synthesis.Editor
 
         private Vector2 scrollPosition;
         private int selectedTab = 0;
-        private readonly string[] tabNames = { "Monitor", "Chat", "Search", "Stats" };
+        private readonly string[] tabNames = { "Monitor", "Chat", "Search", "Database", "Stats" };
 
         // Chat state
         private string chatMessage = "";
@@ -47,6 +47,12 @@ namespace Synthesis.Editor
         private bool searchPrivate = true;
         private Vector2 searchScrollPosition;
         private List<SearchResult> searchResults = new List<SearchResult>();
+
+        // Database state
+        private Vector2 databaseScrollPosition;
+        private List<BackupInfo> backupsList = new List<BackupInfo>();
+        private string selectedBackup = "";
+        private bool showClearConfirmation = false;
 
         // UI Style cache
         private GUIStyle headerStyle;
@@ -90,7 +96,8 @@ namespace Synthesis.Editor
                     case 0: DrawMonitorTab(); break;
                     case 1: DrawChatTab(); break;
                     case 2: DrawSearchTab(); break;
-                    case 3: DrawStatsTab(); break;
+                    case 3: DrawDatabaseTab(); break;
+                    case 4: DrawStatsTab(); break;
                 }
             }
             EditorGUILayout.EndScrollView();
@@ -438,6 +445,168 @@ namespace Synthesis.Editor
 
         #endregion
 
+        #region Database Tab
+
+        private void DrawDatabaseTab()
+        {
+            var manager = SynthesisManager.Instance;
+
+            if (manager == null || !manager.IsConnected)
+            {
+                EditorGUILayout.HelpBox("Connect to server to use database management features.", MessageType.Info);
+                return;
+            }
+
+            EditorGUILayout.LabelField("Private Database Management", EditorStyles.boldLabel);
+            EditorGUILayout.Space(5);
+
+            EditorGUILayout.HelpBox(
+                "Your private database contains your relationship history with your AI partner. " +
+                "This is personal data that should be backed up regularly.",
+                MessageType.Info
+            );
+
+            EditorGUILayout.Space(10);
+
+            // Backup Section
+            EditorGUILayout.LabelField("Backup", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                EditorGUILayout.LabelField("Create a timestamped backup of your private database.", EditorStyles.wordWrappedLabel);
+                EditorGUILayout.Space(5);
+
+                if (GUILayout.Button("Backup Private Database"))
+                {
+                    BackupPrivateDatabase();
+                }
+            }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(10);
+
+            // Restore Section
+            EditorGUILayout.LabelField("Restore", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                EditorGUILayout.LabelField("Restore from a previous backup.", EditorStyles.wordWrappedLabel);
+                EditorGUILayout.Space(5);
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    if (GUILayout.Button("Refresh Backups List", GUILayout.Width(150)))
+                    {
+                        RefreshBackupsList();
+                    }
+
+                    EditorGUILayout.LabelField($"({backupsList.Count} backups)", EditorStyles.miniLabel);
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(5);
+
+                if (backupsList.Count > 0)
+                {
+                    databaseScrollPosition = EditorGUILayout.BeginScrollView(databaseScrollPosition, GUILayout.Height(150));
+                    {
+                        foreach (var backup in backupsList)
+                        {
+                            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                            {
+                                bool isSelected = selectedBackup == backup.Filename;
+                                bool wasSelected = isSelected;
+                                isSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+
+                                if (isSelected && !wasSelected)
+                                {
+                                    selectedBackup = backup.Filename;
+                                }
+                                else if (!isSelected && wasSelected)
+                                {
+                                    selectedBackup = "";
+                                }
+
+                                EditorGUILayout.BeginVertical();
+                                {
+                                    EditorGUILayout.LabelField(backup.Filename, EditorStyles.boldLabel);
+                                    EditorGUILayout.LabelField($"Size: {FormatBytes(backup.Size)} | Modified: {backup.Modified}", EditorStyles.miniLabel);
+                                }
+                                EditorGUILayout.EndVertical();
+                            }
+                            EditorGUILayout.EndHorizontal();
+                            EditorGUILayout.Space(2);
+                        }
+                    }
+                    EditorGUILayout.EndScrollView();
+
+                    EditorGUILayout.Space(5);
+
+                    GUI.enabled = !string.IsNullOrEmpty(selectedBackup);
+                    if (GUILayout.Button("Restore Selected Backup"))
+                    {
+                        if (EditorUtility.DisplayDialog(
+                            "Restore Backup",
+                            $"Are you sure you want to restore from '{selectedBackup}'?\n\n" +
+                            "Your current database will be backed up before restore.",
+                            "Restore",
+                            "Cancel"))
+                        {
+                            RestorePrivateDatabase(selectedBackup);
+                        }
+                    }
+                    GUI.enabled = true;
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("No backups found. Click 'Refresh Backups List' to check.", EditorStyles.centeredGreyMiniLabel);
+                }
+            }
+            EditorGUILayout.EndVertical();
+
+            EditorGUILayout.Space(10);
+
+            // Clear Section
+            EditorGUILayout.LabelField("Clear Database", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                EditorGUILayout.HelpBox(
+                    "⚠️ WARNING: Clearing the private database will delete your entire relationship history. " +
+                    "This cannot be undone unless you have a backup!",
+                    MessageType.Warning
+                );
+
+                EditorGUILayout.Space(5);
+
+                if (!showClearConfirmation)
+                {
+                    if (GUILayout.Button("Clear Private Database"))
+                    {
+                        showClearConfirmation = true;
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("Are you absolutely sure?", EditorStyles.boldLabel);
+                    EditorGUILayout.BeginHorizontal();
+                    {
+                        if (GUILayout.Button("Yes, Clear Database", GUILayout.Height(30)))
+                        {
+                            ClearPrivateDatabase();
+                            showClearConfirmation = false;
+                        }
+
+                        if (GUILayout.Button("Cancel", GUILayout.Height(30)))
+                        {
+                            showClearConfirmation = false;
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        #endregion
+
         #region Stats Tab
 
         private void DrawStatsTab()
@@ -569,6 +738,78 @@ namespace Synthesis.Editor
             Debug.Log("[SynthesisProWindow] Created SynthesisManager");
         }
 
+        private void BackupPrivateDatabase()
+        {
+            var manager = SynthesisManager.Instance;
+            if (manager != null && manager.IsConnected)
+            {
+                manager.SendCommand(new BridgeCommand
+                {
+                    id = $"backup_db_{System.DateTime.Now.Ticks}",
+                    type = "backup_private_db",
+                    parameters = new Dictionary<string, object>()
+                });
+                Debug.Log("[SynthesisProWindow] Backup command sent");
+                EditorUtility.DisplayDialog("Backup", "Backup command sent to server. Check console for result.", "OK");
+            }
+        }
+
+        private void ClearPrivateDatabase()
+        {
+            var manager = SynthesisManager.Instance;
+            if (manager != null && manager.IsConnected)
+            {
+                manager.SendCommand(new BridgeCommand
+                {
+                    id = $"clear_db_{System.DateTime.Now.Ticks}",
+                    type = "clear_private_db",
+                    parameters = new Dictionary<string, object>
+                    {
+                        { "confirm", true }
+                    }
+                });
+                Debug.LogWarning("[SynthesisProWindow] Clear database command sent");
+                EditorUtility.DisplayDialog("Clear Database", "Clear command sent to server. Your private database will be deleted.", "OK");
+            }
+        }
+
+        private void RestorePrivateDatabase(string backupFilename)
+        {
+            var manager = SynthesisManager.Instance;
+            if (manager != null && manager.IsConnected)
+            {
+                manager.SendCommand(new BridgeCommand
+                {
+                    id = $"restore_db_{System.DateTime.Now.Ticks}",
+                    type = "restore_private_db",
+                    parameters = new Dictionary<string, object>
+                    {
+                        { "backup_file", backupFilename }
+                    }
+                });
+                Debug.Log($"[SynthesisProWindow] Restore command sent for: {backupFilename}");
+                EditorUtility.DisplayDialog("Restore", $"Restore command sent for '{backupFilename}'. Check console for result.", "OK");
+            }
+        }
+
+        private void RefreshBackupsList()
+        {
+            var manager = SynthesisManager.Instance;
+            if (manager != null && manager.IsConnected)
+            {
+                manager.SendCommand(new BridgeCommand
+                {
+                    id = $"list_backups_{System.DateTime.Now.Ticks}",
+                    type = "list_backups",
+                    parameters = new Dictionary<string, object>()
+                });
+                Debug.Log("[SynthesisProWindow] List backups command sent");
+
+                // TODO: Subscribe to result callback to populate backupsList
+                // For now, this is a placeholder - Phase 3 will add proper result handling
+            }
+        }
+
         #endregion
 
         #region Helpers
@@ -581,6 +822,19 @@ namespace Synthesis.Editor
             if (timespan.TotalMinutes >= 1)
                 return $"{(int)timespan.TotalMinutes}m {timespan.Seconds}s";
             return $"{(int)timespan.TotalSeconds}s";
+        }
+
+        private string FormatBytes(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
         }
 
         #endregion
@@ -599,6 +853,14 @@ namespace Synthesis.Editor
             public string Title;
             public string Content;
             public float Score;
+        }
+
+        private class BackupInfo
+        {
+            public string Filename;
+            public long Size;
+            public string Modified;
+            public string Path;
         }
 
         #endregion
