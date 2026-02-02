@@ -1,0 +1,456 @@
+"""
+Synthesis.Pro WebSocket Server
+Real-time bidirectional communication between Unity and AI
+
+Features:
+- WebSocket server for Unity command execution
+- Command routing and validation
+- Result delivery
+- Connection management
+- Integration with RAG engine
+- MCP protocol support (future)
+
+Architecture:
+    Unity Editor (C#) <--WebSocket--> Python Server <--> RAG Engine
+                                            |
+                                            +--> OpenAI API
+                                            +--> Knowledge Base
+"""
+
+import asyncio
+import websockets
+import json
+import logging
+from typing import Dict, Set, Callable, Optional
+from datetime import datetime
+import sys
+import os
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from RAG import SynthesisRAG, ConversationTracker
+
+
+class SynthesisWebSocketServer:
+    """
+    WebSocket server for Synthesis.Pro
+
+    Handles real-time communication between Unity and Python AI systems.
+    """
+
+    def __init__(self, host: str = "localhost", port: int = 8765):
+        """
+        Initialize WebSocket server
+
+        Args:
+            host: Host to bind to (default: localhost for security)
+            port: Port to listen on (default: 8765)
+        """
+        self.host = host
+        self.port = port
+
+        # Active connections
+        self.connections: Set[websockets.WebSocketServerProtocol] = set()
+
+        # Command handlers
+        self.command_handlers: Dict[str, Callable] = {}
+
+        # Statistics
+        self.stats = {
+            'connections_total': 0,
+            'commands_processed': 0,
+            'commands_failed': 0,
+            'uptime_start': datetime.now()
+        }
+
+        # RAG engine (initialized on first use)
+        self.rag: Optional[SynthesisRAG] = None
+        self.conversation_tracker: Optional[ConversationTracker] = None
+
+        # Setup logging
+        self.logger = logging.getLogger("SynthesisWebSocket")
+        self._setup_logging()
+
+        # Register default command handlers
+        self._register_default_handlers()
+
+    def _setup_logging(self):
+        """Configure logging"""
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '[%(asctime)s] %(levelname)s - %(message)s',
+            datefmt='%H:%M:%S'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
+
+    def _register_default_handlers(self):
+        """Register built-in command handlers"""
+        self.register_handler("ping", self._handle_ping)
+        self.register_handler("get_capabilities", self._handle_get_capabilities)
+        self.register_handler("get_stats", self._handle_get_stats)
+        self.register_handler("chat", self._handle_chat)
+        self.register_handler("search_knowledge", self._handle_search_knowledge)
+
+    def register_handler(self, command_type: str, handler: Callable):
+        """
+        Register a command handler
+
+        Args:
+            command_type: Type of command to handle
+            handler: Async function to handle the command
+        """
+        self.command_handlers[command_type] = handler
+        self.logger.info(f"Registered handler for: {command_type}")
+
+    async def start(self):
+        """Start the WebSocket server"""
+        self.logger.info(f"🚀 Starting Synthesis.Pro WebSocket Server")
+        self.logger.info(f"📡 Listening on ws://{self.host}:{self.port}")
+        self.logger.info(f"🔒 Security: localhost-only binding")
+
+        # Initialize RAG engine
+        await self._initialize_rag()
+
+        # Start server
+        async with websockets.serve(self._handle_connection, self.host, self.port):
+            self.logger.info(f"✅ Server ready! Waiting for Unity connections...")
+            await asyncio.Future()  # Run forever
+
+    async def _initialize_rag(self):
+        """Initialize RAG engine and conversation tracker"""
+        try:
+            self.logger.info("Initializing RAG engine...")
+
+            # Create RAG with dual databases
+            self.rag = SynthesisRAG(
+                database="synthesis_knowledge.db",
+                private_database="synthesis_private.db"
+            )
+
+            # Create conversation tracker
+            self.conversation_tracker = ConversationTracker(self.rag)
+
+            self.logger.info("✅ RAG engine initialized (dual database mode)")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize RAG: {e}")
+            self.logger.warning("Server will run without RAG features")
+
+    async def _handle_connection(self, websocket: websockets.WebSocketServerProtocol, path: str):
+        """
+        Handle a new WebSocket connection
+
+        Args:
+            websocket: WebSocket connection
+            path: Connection path
+        """
+        # Register connection
+        self.connections.add(websocket)
+        self.stats['connections_total'] += 1
+
+        client_info = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
+        self.logger.info(f"🔌 Unity connected: {client_info} (total: {len(self.connections)})")
+
+        try:
+            # Send welcome message
+            await self._send_message(websocket, {
+                "type": "connection",
+                "status": "connected",
+                "message": "Welcome to Synthesis.Pro!",
+                "server_version": "1.0.0",
+                "timestamp": datetime.now().isoformat()
+            })
+
+            # Handle messages
+            async for message in websocket:
+                await self._handle_message(websocket, message)
+
+        except websockets.exceptions.ConnectionClosed:
+            self.logger.info(f"🔌 Unity disconnected: {client_info}")
+
+        except Exception as e:
+            self.logger.error(f"Connection error: {e}")
+
+        finally:
+            # Unregister connection
+            self.connections.remove(websocket)
+            self.logger.info(f"📊 Active connections: {len(self.connections)}")
+
+    async def _handle_message(self, websocket: websockets.WebSocketServerProtocol, message: str):
+        """
+        Handle incoming message from Unity
+
+        Args:
+            websocket: Client connection
+            message: JSON message string
+        """
+        try:
+            # Parse JSON
+            data = json.loads(message)
+
+            # Extract command info
+            command_id = data.get('id', 'unknown')
+            command_type = data.get('type', 'unknown')
+            parameters = data.get('parameters', {})
+
+            self.logger.info(f"📥 Command received: {command_type} (ID: {command_id})")
+
+            # Find handler
+            if command_type not in self.command_handlers:
+                await self._send_error(websocket, command_id, f"Unknown command: {command_type}")
+                self.stats['commands_failed'] += 1
+                return
+
+            # Execute handler
+            handler = self.command_handlers[command_type]
+            result = await handler(command_id, parameters)
+
+            # Send result
+            await self._send_message(websocket, result)
+            self.stats['commands_processed'] += 1
+
+            self.logger.info(f"✅ Command completed: {command_type}")
+
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid JSON: {e}")
+            await self._send_error(websocket, "unknown", "Invalid JSON format")
+            self.stats['commands_failed'] += 1
+
+        except Exception as e:
+            self.logger.error(f"Error handling message: {e}")
+            await self._send_error(websocket, data.get('id', 'unknown'), str(e))
+            self.stats['commands_failed'] += 1
+
+    async def _send_message(self, websocket: websockets.WebSocketServerProtocol, data: dict):
+        """
+        Send message to Unity
+
+        Args:
+            websocket: Client connection
+            data: Data to send (will be JSON encoded)
+        """
+        try:
+            message = json.dumps(data)
+            await websocket.send(message)
+        except Exception as e:
+            self.logger.error(f"Failed to send message: {e}")
+
+    async def _send_error(self, websocket: websockets.WebSocketServerProtocol, command_id: str, error_message: str):
+        """
+        Send error response
+
+        Args:
+            websocket: Client connection
+            command_id: Command ID that failed
+            error_message: Error description
+        """
+        await self._send_message(websocket, {
+            "commandId": command_id,
+            "success": False,
+            "message": error_message,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    # ========== Command Handlers ==========
+
+    async def _handle_ping(self, command_id: str, parameters: dict) -> dict:
+        """Handle ping command"""
+        return {
+            "commandId": command_id,
+            "success": True,
+            "message": "Pong! Server is alive!",
+            "data": {
+                "server_time": datetime.now().isoformat(),
+                "active_connections": len(self.connections),
+                "uptime_seconds": (datetime.now() - self.stats['uptime_start']).total_seconds()
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+    async def _handle_get_capabilities(self, command_id: str, parameters: dict) -> dict:
+        """Handle get capabilities command"""
+        return {
+            "commandId": command_id,
+            "success": True,
+            "message": "Server capabilities",
+            "data": {
+                "version": "1.0.0",
+                "name": "Synthesis.Pro WebSocket Server",
+                "features": [
+                    "Real-time communication",
+                    "Dual database RAG",
+                    "Conversation tracking",
+                    "Knowledge search",
+                    "AI chat"
+                ],
+                "registered_commands": list(self.command_handlers.keys()),
+                "rag_enabled": self.rag is not None,
+                "conversation_tracking": self.conversation_tracker is not None
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+    async def _handle_get_stats(self, command_id: str, parameters: dict) -> dict:
+        """Handle get stats command"""
+        uptime = (datetime.now() - self.stats['uptime_start']).total_seconds()
+
+        return {
+            "commandId": command_id,
+            "success": True,
+            "message": "Server statistics",
+            "data": {
+                "connections_current": len(self.connections),
+                "connections_total": self.stats['connections_total'],
+                "commands_processed": self.stats['commands_processed'],
+                "commands_failed": self.stats['commands_failed'],
+                "uptime_seconds": uptime,
+                "uptime_formatted": self._format_uptime(uptime)
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+    async def _handle_chat(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle chat command (AI conversation)
+
+        Parameters:
+            message: User's message
+            context: Optional context string
+        """
+        if not self.rag or not self.conversation_tracker:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        message = parameters.get('message', '')
+        context = parameters.get('context', '')
+
+        if not message:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "Missing 'message' parameter",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            # Search knowledge base for relevant context
+            search_results = self.rag.search(message, top_k=5, private=True)
+
+            # TODO: Call AI model with context (Phase 3)
+            # For now, return search results
+            response = f"Received: {message}\nFound {len(search_results)} relevant context items."
+
+            # Track conversation
+            self.conversation_tracker.add_exchange(
+                user_message=message,
+                assistant_message=response,
+                context=context
+            )
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": "Chat response",
+                "data": {
+                    "response": response,
+                    "context_items": len(search_results)
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Chat error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Chat failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_search_knowledge(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle knowledge search command
+
+        Parameters:
+            query: Search query
+            top_k: Number of results (default: 10)
+            private: Search private database (default: true)
+        """
+        if not self.rag:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        query = parameters.get('query', '')
+        top_k = parameters.get('top_k', 10)
+        private = parameters.get('private', True)
+
+        if not query:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "Missing 'query' parameter",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            results = self.rag.search(query, top_k=top_k, private=private)
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": f"Found {len(results)} results",
+                "data": {
+                    "results": results,
+                    "count": len(results),
+                    "query": query
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Search error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Search failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    def _format_uptime(self, seconds: float) -> str:
+        """Format uptime in human-readable format"""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours}h {minutes}m {secs}s"
+
+
+async def main():
+    """Main entry point"""
+    # Create and start server
+    server = SynthesisWebSocketServer(host="localhost", port=8765)
+
+    try:
+        await server.start()
+    except KeyboardInterrupt:
+        print("\n\n👋 Shutting down server...")
+        print(f"📊 Final stats:")
+        print(f"   Total connections: {server.stats['connections_total']}")
+        print(f"   Commands processed: {server.stats['commands_processed']}")
+        print(f"   Commands failed: {server.stats['commands_failed']}")
+
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print("🚀 Synthesis.Pro WebSocket Server")
+    print("=" * 60)
+    asyncio.run(main())
