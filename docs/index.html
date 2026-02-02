@@ -14,8 +14,8 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: #f5f5f5;
+            color: #e6edf3;
+            background: #0d1117;
         }
 
         .container {
@@ -46,43 +46,45 @@
 
         .cta-button {
             display: inline-block;
-            background: white;
-            color: #667eea;
+            background: #1c2128;
+            color: #e6edf3;
             padding: 15px 40px;
             border-radius: 50px;
+            border: 2px solid #667eea;
             text-decoration: none;
             font-weight: 600;
             font-size: 1.1em;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
         }
 
         .cta-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            background: #667eea;
         }
 
         /* Sections */
         section {
             padding: 60px 0;
-            background: white;
+            background: #161b22;
             margin-bottom: 2px;
         }
 
         section:nth-child(even) {
-            background: #fafafa;
+            background: #0d1117;
         }
 
         h2 {
             font-size: 2.5em;
             margin-bottom: 30px;
             text-align: center;
-            color: #2c3e50;
+            color: #e6edf3;
         }
 
         h3 {
             font-size: 1.8em;
             margin: 30px 0 15px;
-            color: #667eea;
+            color: #8b9dc3;
         }
 
         /* Features Grid */
@@ -94,16 +96,18 @@
         }
 
         .feature-card {
-            background: white;
+            background: #1c2128;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
         }
 
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+            border-color: #667eea;
         }
 
         .feature-card h3 {
@@ -149,10 +153,11 @@
 
         /* Code Blocks */
         pre {
-            background: #2c3e50;
-            color: #ecf0f1;
+            background: #0d1117;
+            color: #e6edf3;
             padding: 20px;
             border-radius: 8px;
+            border: 1px solid #30363d;
             overflow-x: auto;
             margin: 20px 0;
         }
@@ -160,6 +165,9 @@
         code {
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
+            background: #0d1117;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
 
         /* Installation Steps */
@@ -173,10 +181,12 @@
             position: relative;
             padding: 20px 20px 20px 60px;
             margin-bottom: 20px;
-            background: white;
+            background: #1c2128;
             border-left: 4px solid #667eea;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #30363d;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .install-steps li::before {
@@ -206,12 +216,13 @@
         }
 
         footer a {
-            color: #667eea;
+            color: #8b9dc3;
             text-decoration: none;
         }
 
         footer a:hover {
             text-decoration: underline;
+            color: #a8b8d8;
         }
 
         /* Responsive */
@@ -226,6 +237,10 @@
 
             .features-grid {
                 grid-template-columns: 1fr;
+            }
+
+            section div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
             }
         }
     </style>
@@ -389,8 +404,8 @@ Save settings</code></pre>
                 </div>
             </div>
 
-            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin-top: 30px; border-radius: 5px;">
-                <strong>🛡️ Safety First:</strong> All data defaults to <strong>private</strong> to prevent accidental leaks.
+            <div style="background: #21262d; border-left: 4px solid #ffc107; padding: 20px; margin-top: 30px; border-radius: 5px; border: 1px solid #30363d;">
+                <strong style="color: #ffc107;">🛡️ Safety First:</strong> All data defaults to <strong>private</strong> to prevent accidental leaks.
                 You must explicitly mark content as public to share it.
             </div>
         </div>
@@ -403,7 +418,7 @@ Save settings</code></pre>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px;">
                 <div>
-                    <h3 style="color: #e74c3c;">❌ Traditional Approach</h3>
+                    <h3 style="color: #f85149;">❌ Traditional Approach</h3>
                     <pre><code>Send 10 files @ 5K tokens each    = 50,000 tokens
 Re-explain project context         = 10,000 tokens
 Actual work/discussion             = 10,000 tokens
@@ -414,7 +429,7 @@ Cost: 70K × $3/million = $0.21 per session</code></pre>
                 </div>
 
                 <div>
-                    <h3 style="color: #27ae60;">✅ With Synthesis.Pro</h3>
+                    <h3 style="color: #3fb950;">✅ With Synthesis.Pro</h3>
                     <pre><code>Query RAG "project status"        =   200 tokens
 Query RAG "recent decisions"       =   300 tokens
 Actual work/discussion             = 10,000 tokens
@@ -425,8 +440,8 @@ Cost: 10.5K × $3/million = $0.03 per session</code></pre>
                 </div>
             </div>
 
-            <div style="text-align: center; margin-top: 40px; padding: 30px; background: #e8f5e9; border-radius: 10px;">
-                <h3 style="color: #27ae60; margin-top: 0;">💚 Result: 85% Cost Reduction</h3>
+            <div style="text-align: center; margin-top: 40px; padding: 30px; background: #1c2128; border-radius: 10px; border: 1px solid #27ae60;">
+                <h3 style="color: #3fb950; margin-top: 0;">💚 Result: 85% Cost Reduction</h3>
                 <p style="font-size: 1.2em;">The longer you use it, the smarter and cheaper it gets!</p>
             </div>
         </div>
@@ -440,19 +455,19 @@ Cost: 10.5K × $3/million = $0.03 per session</code></pre>
                 <div class="feature-card">
                     <h3>📖 README</h3>
                     <p>Quick start guide and feature overview</p>
-                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/README.md" style="color: #667eea;">View README →</a>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/README.md" style="color: #8b9dc3; text-decoration: none;">View README →</a>
                 </div>
 
                 <div class="feature-card">
                     <h3>⚡ Efficient Workflow</h3>
                     <p>Complete guide to cost optimization and best practices</p>
-                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/EFFICIENT_WORKFLOW.md" style="color: #667eea;">View Guide →</a>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/EFFICIENT_WORKFLOW.md" style="color: #8b9dc3; text-decoration: none;">View Guide →</a>
                 </div>
 
                 <div class="feature-card">
                     <h3>💭 Philosophy</h3>
                     <p>Why we built Synthesis.Pro and our core values</p>
-                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/VISION.md" style="color: #667eea;">Read Vision →</a>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/VISION.md" style="color: #8b9dc3; text-decoration: none;">Read Vision →</a>
                 </div>
             </div>
         </div>
@@ -473,7 +488,7 @@ Cost: 10.5K × $3/million = $0.03 per session</code></pre>
                 </div>
 
                 <p style="margin-top: 40px; font-size: 1.1em;">
-                    <strong>Contact:</strong> <a href="mailto:support@fallen-entertainment.com">support@fallen-entertainment.com</a>
+                    <strong>Contact:</strong> <a href="mailto:support@fallen-entertainment.com" style="color: #8b9dc3; text-decoration: none;">support@fallen-entertainment.com</a>
                 </p>
             </div>
         </div>
