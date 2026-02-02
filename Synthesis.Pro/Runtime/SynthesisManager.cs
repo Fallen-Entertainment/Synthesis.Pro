@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 
 namespace Synthesis.Bridge
 {
@@ -37,6 +39,11 @@ namespace Synthesis.Bridge
         [SerializeField] private bool autoCreateComponents = true;
         [SerializeField] private bool autoConnect = true;
 
+        [Header("Server Management")]
+        [SerializeField] private bool autoStartServer = true;
+        [SerializeField] private string serverExecutableName = "websocket_server.py";
+        [SerializeField] private float serverStartupDelay = 2f;
+
         #endregion
 
         #region State
@@ -44,6 +51,10 @@ namespace Synthesis.Bridge
         private bool isInitialized = false;
         private int commandsRouted = 0;
         private int resultsDelivered = 0;
+
+        // Server process management
+        private Process serverProcess = null;
+        private bool serverStartedByUs = false;
 
         #endregion
 
@@ -70,11 +81,20 @@ namespace Synthesis.Bridge
             // Initialize integration
             InitializeIntegration();
 
+            // Auto-start server if enabled
+            if (autoStartServer)
+            {
+                StartServer();
+            }
+
             Log("🎮 Synthesis Manager initialized!");
         }
 
         private void OnDestroy()
         {
+            // Stop server if we started it
+            StopServer();
+
             // Cleanup
             if (isInitialized)
             {
@@ -85,6 +105,12 @@ namespace Synthesis.Bridge
             {
                 instance = null;
             }
+        }
+
+        private void OnApplicationQuit()
+        {
+            // Ensure server is stopped on quit
+            StopServer();
         }
 
         #endregion
@@ -182,13 +208,6 @@ namespace Synthesis.Bridge
 
             isInitialized = true;
             Log("🔗 Integration complete!");
-
-            // Auto-connect if enabled
-            if (autoConnect && webSocketClient != null && !webSocketClient.IsConnected)
-            {
-                Log("Auto-connecting to server...");
-                webSocketClient.Connect();
-            }
         }
 
         private void CleanupIntegration()
@@ -386,6 +405,161 @@ namespace Synthesis.Bridge
                     { "private", privateDb }
                 }
             });
+        }
+
+        #endregion
+
+        #region Server Management
+
+        /// <summary>
+        /// Start the Python WebSocket server process
+        /// </summary>
+        private async void StartServer()
+        {
+            if (serverProcess != null)
+            {
+                Log("Server process already running");
+                return;
+            }
+
+            try
+            {
+                // Find server script path
+                string serverPath = FindServerPath();
+                if (string.IsNullOrEmpty(serverPath))
+                {
+                    LogError("Could not find server script. Please ensure " + serverExecutableName + " exists in Synthesis.Pro/Server/");
+                    return;
+                }
+
+                Log($"Starting server: {serverPath}");
+
+                // Create process start info
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = $"\"{serverPath}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetDirectoryName(serverPath)
+                };
+
+                // Start process
+                serverProcess = new Process { StartInfo = startInfo };
+
+                // Log server output
+                serverProcess.OutputDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                    {
+                        Log($"[Server] {args.Data}");
+                    }
+                };
+
+                serverProcess.ErrorDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                    {
+                        LogWarning($"[Server] {args.Data}");
+                    }
+                };
+
+                serverProcess.Start();
+                serverProcess.BeginOutputReadLine();
+                serverProcess.BeginErrorReadLine();
+
+                serverStartedByUs = true;
+                Log("✅ Server process started");
+
+                // Wait for server to initialize
+                await System.Threading.Tasks.Task.Delay((int)(serverStartupDelay * 1000));
+
+                // Auto-connect if enabled
+                if (autoConnect && webSocketClient != null && !webSocketClient.IsConnected)
+                {
+                    Log("Auto-connecting to server...");
+                    webSocketClient.Connect();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                LogError($"Failed to start server: {ex.Message}");
+                LogWarning("Please ensure Python is installed and in PATH");
+                serverProcess = null;
+            }
+        }
+
+        /// <summary>
+        /// Stop the Python WebSocket server process
+        /// </summary>
+        private void StopServer()
+        {
+            if (serverProcess == null || !serverStartedByUs)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!serverProcess.HasExited)
+                {
+                    Log("Stopping server process...");
+                    serverProcess.Kill();
+                    serverProcess.WaitForExit(2000); // Wait up to 2 seconds
+                    Log("Server process stopped");
+                }
+
+                serverProcess.Dispose();
+            }
+            catch (System.Exception ex)
+            {
+                LogWarning($"Error stopping server: {ex.Message}");
+            }
+            finally
+            {
+                serverProcess = null;
+                serverStartedByUs = false;
+            }
+        }
+
+        /// <summary>
+        /// Find the server script path
+        /// </summary>
+        private string FindServerPath()
+        {
+            // Try to find server relative to this script
+            // Typical paths:
+            // - Assets/Synthesis.Pro/Server/websocket_server.py
+            // - Packages/com.synthesis.pro/Server/websocket_server.py
+
+            string[] searchPaths = new string[]
+            {
+                Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", serverExecutableName),
+                Path.Combine(Application.dataPath, "..", "Packages", "Synthesis.Pro", "Server", serverExecutableName),
+                Path.Combine(Application.dataPath, "..", "Packages", "com.synthesis.pro", "Server", serverExecutableName),
+                Path.Combine(Application.dataPath, "..", "Synthesis.Pro", "Server", serverExecutableName)
+            };
+
+            foreach (string path in searchPaths)
+            {
+                string fullPath = Path.GetFullPath(path);
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Check if server is running
+        /// </summary>
+        public bool IsServerRunning()
+        {
+            return serverProcess != null && !serverProcess.HasExited;
         }
 
         #endregion
