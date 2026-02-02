@@ -382,6 +382,32 @@ namespace Synthesis.Bridge
         }
 
         /// <summary>
+        /// Send a result back to the server (from SynLink execution)
+        /// </summary>
+        public void SendResult(BridgeResult result)
+        {
+            if (!isConnected)
+            {
+                LogError("Cannot send result: Not connected");
+                return;
+            }
+
+            try
+            {
+                string json = JsonConvert.SerializeObject(result);
+
+                lock (messageLock)
+                {
+                    outgoingMessages.Enqueue(json);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError($"Failed to serialize result: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Send a ping to check connection health
         /// </summary>
         public void SendPing()
