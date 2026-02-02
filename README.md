@@ -69,6 +69,6 @@ The more you use it, the smarter and cheaper it gets. See [EFFICIENT_WORKFLOW.md
 
 Both you and your AI partner deserve privacy for honest collaboration.
 
-## License
+## Availability
 
-Free and open source - built for the community 🤝
+Available on Unity Asset Store - built for the community 🤝
