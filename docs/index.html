@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthesis.Pro - AI-Powered Unity Development Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Sections */
+        section {
+            padding: 60px 0;
+            background: white;
+            margin-bottom: 2px;
+        }
+
+        section:nth-child(even) {
+            background: #fafafa;
+        }
+
+        h2 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        h3 {
+            font-size: 1.8em;
+            margin: 30px 0 15px;
+            color: #667eea;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+
+        .feature-card h3 {
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+
+        /* Cost Savings */
+        .savings-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .savings-box h3 {
+            color: white;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .savings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .savings-item {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .savings-item strong {
+            font-size: 2em;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Installation Steps */
+        .install-steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .install-steps li {
+            position: relative;
+            padding: 20px 20px 20px 60px;
+            margin-bottom: 20px;
+            background: white;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .install-steps li::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            header p {
+                font-size: 1.1em;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <h1>Synthesis.Pro</h1>
+            <p>AI-Powered Unity Development Assistant with Privacy-First Architecture</p>
+            <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro" class="cta-button">View on GitHub</a>
+        </div>
+    </header>
+
+    <!-- Overview -->
+    <section>
+        <div class="container">
+            <h2>Built for the Community</h2>
+            <p style="text-align: center; font-size: 1.2em; max-width: 800px; margin: 0 auto;">
+                Synthesis.Pro is an AI development assistant that learns your coding style and builds a relationship with you over time.
+                With privacy-first dual database architecture and smart cost optimization, it makes AI development accessible to everyone.
+            </p>
+
+            <div class="savings-box">
+                <h3>💰 Save ~85% on AI Development Costs</h3>
+                <p style="font-size: 1.1em;">Traditional AI workflows waste money by re-reading files every session. Synthesis.Pro stores knowledge once and retrieves it cheaply.</p>
+
+                <div class="savings-grid">
+                    <div class="savings-item">
+                        <strong>$21.60/year</strong>
+                        Casual user savings<br>(10 sessions/month)
+                    </div>
+                    <div class="savings-item">
+                        <strong>$64.80/year</strong>
+                        Daily developer savings<br>(30 sessions/month)
+                    </div>
+                    <div class="savings-item">
+                        <strong>$129.60/year</strong>
+                        Heavy user savings<br>(60 sessions/month)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+        <div class="container">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>🤝 Partnership Model</h3>
+                    <p>AI that learns your coding style, preferences, and project context. Each session builds on the last, creating a true development partnership.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🔒 Privacy-First Architecture</h3>
+                    <p>Dual database system: Public Unity docs + Private project data. Your code stays yours. All data defaults to private to prevent accidental leaks.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>⚡ Hybrid Search</h3>
+                    <p>Combines semantic vector search with full-text keyword search for optimal retrieval quality across both databases.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>💬 Intelligent Chat</h3>
+                    <p>Context-aware AI chat with full project understanding. Search your knowledge base, get code suggestions, debug issues.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📊 Database Management</h3>
+                    <p>Backup, restore, and clear your relationship history. Full control over your AI partnership data.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>💰 Cost Efficient</h3>
+                    <p>Smart context management reduces AI costs by ~85%. Save $65+/year as a daily developer through efficient knowledge storage.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section>
+        <div class="container">
+            <h2>Installation & Setup</h2>
+
+            <h3>Quick Start</h3>
+            <ol class="install-steps">
+                <li>
+                    <strong>Import into Unity</strong><br>
+                    Download from Unity Asset Store and import into your project
+                </li>
+                <li>
+                    <strong>Open Synthesis.Pro</strong><br>
+                    Unity Menu → Window → Synthesis → Synthesis Pro
+                </li>
+                <li>
+                    <strong>Automatic Setup</strong><br>
+                    WebSocket server starts automatically when you open the window
+                </li>
+                <li>
+                    <strong>Start Using</strong><br>
+                    Chat, search, and manage your private knowledge base immediately
+                </li>
+            </ol>
+
+            <h3>Requirements</h3>
+            <ul style="margin-left: 20px; line-height: 2;">
+                <li>Unity 2020.3 or later</li>
+                <li>Windows, macOS, or Linux</li>
+                <li>Claude API key (from Anthropic) - for AI chat features</li>
+                <li>Python 3.11+ (embedded, included with package)</li>
+            </ul>
+
+            <h3>Configuration</h3>
+            <p>Configure your API key in the Synthesis.Pro window:</p>
+            <pre><code>Window → Synthesis → Synthesis Pro → Settings
+Enter your Claude API key
+Save settings</code></pre>
+        </div>
+    </section>
+
+    <!-- Privacy Architecture -->
+    <section>
+        <div class="container">
+            <h2>Privacy Architecture</h2>
+            <p style="text-align: center; font-size: 1.2em; max-width: 800px; margin: 0 auto 40px;">
+                Two separate databases maintain clear boundaries between public and private knowledge.
+            </p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>🌍 Public Database</h3>
+                    <p><code>synthesis_knowledge.db</code></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Unity API documentation</li>
+                        <li>General C# patterns</li>
+                        <li>Asset Store integration guides</li>
+                        <li>Anonymous code examples</li>
+                    </ul>
+                    <p style="margin-top: 15px;"><strong>Shareable</strong> - Safe for community contribution</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🔒 Private Database</h3>
+                    <p><code>synthesis_private.db</code></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Your project code and data</li>
+                        <li>AI notes and observations</li>
+                        <li>Personal preferences</li>
+                        <li>Conversation history</li>
+                    </ul>
+                    <p style="margin-top: 15px;"><strong>Confidential</strong> - Never shared, never uploaded</p>
+                </div>
+            </div>
+
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin-top: 30px; border-radius: 5px;">
+                <strong>🛡️ Safety First:</strong> All data defaults to <strong>private</strong> to prevent accidental leaks.
+                You must explicitly mark content as public to share it.
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section>
+        <div class="container">
+            <h2>How Cost Optimization Works</h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px;">
+                <div>
+                    <h3 style="color: #e74c3c;">❌ Traditional Approach</h3>
+                    <pre><code>Send 10 files @ 5K tokens each    = 50,000 tokens
+Re-explain project context         = 10,000 tokens
+Actual work/discussion             = 10,000 tokens
+─────────────────────────────────────────────
+Total INPUT per session            = 70,000 tokens
+
+Cost: 70K × $3/million = $0.21 per session</code></pre>
+                </div>
+
+                <div>
+                    <h3 style="color: #27ae60;">✅ With Synthesis.Pro</h3>
+                    <pre><code>Query RAG "project status"        =   200 tokens
+Query RAG "recent decisions"       =   300 tokens
+Actual work/discussion             = 10,000 tokens
+─────────────────────────────────────────────
+Total INPUT per session            = 10,500 tokens
+
+Cost: 10.5K × $3/million = $0.03 per session</code></pre>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px; padding: 30px; background: #e8f5e9; border-radius: 10px;">
+                <h3 style="color: #27ae60; margin-top: 0;">💚 Result: 85% Cost Reduction</h3>
+                <p style="font-size: 1.2em;">The longer you use it, the smarter and cheaper it gets!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation -->
+    <section>
+        <div class="container">
+            <h2>Documentation</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>📖 README</h3>
+                    <p>Quick start guide and feature overview</p>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/README.md" style="color: #667eea;">View README →</a>
+                </div>
+
+                <div class="feature-card">
+                    <h3>⚡ Efficient Workflow</h3>
+                    <p>Complete guide to cost optimization and best practices</p>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/EFFICIENT_WORKFLOW.md" style="color: #667eea;">View Guide →</a>
+                </div>
+
+                <div class="feature-card">
+                    <h3>💭 Philosophy</h3>
+                    <p>Why we built Synthesis.Pro and our core values</p>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/VISION.md" style="color: #667eea;">Read Vision →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support -->
+    <section>
+        <div class="container">
+            <h2>Support & Community</h2>
+            <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+                <p style="font-size: 1.2em; margin-bottom: 30px;">
+                    Free and open source - built for the community 🤝
+                </p>
+
+                <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro" class="cta-button">GitHub Repository</a>
+                    <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/issues" class="cta-button">Report Issues</a>
+                </div>
+
+                <p style="margin-top: 40px; font-size: 1.1em;">
+                    <strong>Contact:</strong> <a href="mailto:support@fallen-entertainment.com">support@fallen-entertainment.com</a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Fallen Entertainment. Free and Open Source.</p>
+            <p style="margin-top: 10px;">
+                <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro">GitHub</a> •
+                <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/blob/main/README.md">Documentation</a> •
+                <a href="https://github.com/Fallen-Entertainment/Synthesis.Pro/issues">Support</a>
+            </p>
+            <p style="margin-top: 20px; opacity: 0.8; font-size: 0.9em;">
+                "Privacy isn't about having something to hide - it's about having space to think, learn, and collaborate freely."
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
