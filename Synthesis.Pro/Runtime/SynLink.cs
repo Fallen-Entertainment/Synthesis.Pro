@@ -36,6 +36,7 @@ namespace Synthesis.Bridge
 
         private int commandsProcessed = 0;
         private Queue<BridgeCommand> commandQueue = new Queue<BridgeCommand>();
+        private CommandValidator validator;
 
         // Callback for sending results (set by WebSocket/MCP system)
         public System.Action<BridgeResult> OnResultReady { get; set; }
@@ -55,6 +56,9 @@ namespace Synthesis.Bridge
 
             instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // Initialize command validator
+            validator = new CommandValidator();
 
             Log("🌉 SynLink Initialized (WebSocket Mode)");
         }
@@ -85,9 +89,23 @@ namespace Synthesis.Bridge
         /// </summary>
         public void QueueCommand(BridgeCommand cmd)
         {
-            if (cmd == null)
+            // Validate command before queueing
+            var validationResult = validator.ValidateCommand(cmd);
+
+            if (!validationResult.IsValid)
             {
-                Debug.LogWarning("[SynLink] Attempted to queue null command");
+                Debug.LogWarning($"[SynLink] Command rejected: {validationResult.ErrorMessage}");
+
+                // Send rejection result
+                SendResult(new BridgeResult
+                {
+                    commandId = cmd?.id ?? "unknown",
+                    success = false,
+                    message = $"Validation failed: {validationResult.ErrorMessage}",
+                    timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    error = "ValidationError"
+                });
+
                 return;
             }
 
@@ -115,6 +133,16 @@ namespace Synthesis.Bridge
         /// Get total commands processed this session
         /// </summary>
         public int GetCommandsProcessed() => commandsProcessed;
+
+        /// <summary>
+        /// Get validation statistics
+        /// </summary>
+        public ValidationStats GetValidationStats() => validator?.GetStats();
+
+        /// <summary>
+        /// Reset validation statistics
+        /// </summary>
+        public void ResetValidationStats() => validator?.ResetStats();
 
         #endregion
 
