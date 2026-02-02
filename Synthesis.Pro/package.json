@@ -1,0 +1,27 @@
+{
+  "name": "com.nightblade.synthesis.pro",
+  "version": "1.0.0",
+  "displayName": "Synthesis.Pro",
+  "description": "Production-grade AI Creative Partner for Unity with hybrid RAG and MCP integration",
+  "unity": "2020.3",
+  "unityRelease": "0f1",
+  "keywords": [
+    "ai",
+    "mcp",
+    "rag",
+    "unity",
+    "claude",
+    "synthesis",
+    "automation",
+    "assistant"
+  ],
+  "author": {
+    "name": "NightBlade Development",
+    "email": "support@nightblade.dev",
+    "url": "https://nightblade.dev"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
+  },
+  "type": "tool"
+}
