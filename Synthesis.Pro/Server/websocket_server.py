@@ -25,6 +25,8 @@ from typing import Dict, Set, Callable, Optional
 from datetime import datetime
 import sys
 import os
+import shutil
+from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -93,6 +95,10 @@ class SynthesisWebSocketServer:
         self.register_handler("get_stats", self._handle_get_stats)
         self.register_handler("chat", self._handle_chat)
         self.register_handler("search_knowledge", self._handle_search_knowledge)
+        self.register_handler("backup_private_db", self._handle_backup_private_db)
+        self.register_handler("clear_private_db", self._handle_clear_private_db)
+        self.register_handler("restore_private_db", self._handle_restore_private_db)
+        self.register_handler("list_backups", self._handle_list_backups)
 
     def register_handler(self, command_type: str, handler: Callable):
         """
@@ -423,6 +429,264 @@ class SynthesisWebSocketServer:
                 "commandId": command_id,
                 "success": False,
                 "message": f"Search failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_backup_private_db(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle private database backup command
+
+        Creates a timestamped backup of the private database.
+        """
+        if not self.rag:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            # Get private database path
+            private_db_path = Path(self.rag.private_database)
+
+            if not private_db_path.exists():
+                return {
+                    "commandId": command_id,
+                    "success": False,
+                    "message": "Private database does not exist yet",
+                    "timestamp": datetime.now().isoformat()
+                }
+
+            # Create backups directory
+            backup_dir = private_db_path.parent / "backups"
+            backup_dir.mkdir(exist_ok=True)
+
+            # Generate timestamped backup filename
+            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_filename = f"synthesis_private_backup_{timestamp_str}.db"
+            backup_path = backup_dir / backup_filename
+
+            # Copy database to backup
+            shutil.copy2(private_db_path, backup_path)
+
+            # Get backup info
+            backup_size = backup_path.stat().st_size
+
+            self.logger.info(f"✅ Private database backed up: {backup_filename}")
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": f"Private database backed up successfully",
+                "data": {
+                    "backup_file": backup_filename,
+                    "backup_path": str(backup_path),
+                    "backup_size": backup_size,
+                    "timestamp": timestamp_str
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Backup error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Backup failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_clear_private_db(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle private database clear command
+
+        Deletes the private database file. This is IRREVERSIBLE unless backed up!
+        """
+        if not self.rag:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        # Safety check: require explicit confirmation
+        confirmation = parameters.get('confirm', False)
+        if not confirmation:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "Confirmation required. Set 'confirm': true to proceed.",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            # Get private database path
+            private_db_path = Path(self.rag.private_database)
+
+            if not private_db_path.exists():
+                return {
+                    "commandId": command_id,
+                    "success": True,
+                    "message": "Private database does not exist (already clear)",
+                    "timestamp": datetime.now().isoformat()
+                }
+
+            # Delete the database file
+            private_db_path.unlink()
+
+            self.logger.warning(f"⚠️ Private database cleared!")
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": "Private database cleared successfully",
+                "data": {
+                    "cleared_path": str(private_db_path)
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Clear error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Clear failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_restore_private_db(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle private database restore command
+
+        Restores private database from a backup file.
+
+        Parameters:
+            backup_file: Name of backup file to restore from
+        """
+        if not self.rag:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        backup_filename = parameters.get('backup_file', '')
+        if not backup_filename:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "Missing 'backup_file' parameter",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            # Get paths
+            private_db_path = Path(self.rag.private_database)
+            backup_dir = private_db_path.parent / "backups"
+            backup_path = backup_dir / backup_filename
+
+            # Validate backup exists
+            if not backup_path.exists():
+                return {
+                    "commandId": command_id,
+                    "success": False,
+                    "message": f"Backup file not found: {backup_filename}",
+                    "timestamp": datetime.now().isoformat()
+                }
+
+            # Create backup of current database before overwriting (safety)
+            if private_db_path.exists():
+                safety_backup = private_db_path.parent / "backups" / f"pre_restore_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+                shutil.copy2(private_db_path, safety_backup)
+                self.logger.info(f"Created safety backup before restore: {safety_backup.name}")
+
+            # Restore from backup
+            shutil.copy2(backup_path, private_db_path)
+
+            self.logger.info(f"✅ Private database restored from: {backup_filename}")
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": f"Private database restored successfully",
+                "data": {
+                    "restored_from": backup_filename,
+                    "restored_path": str(private_db_path)
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Restore error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Restore failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_list_backups(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle list backups command
+
+        Returns a list of available backup files.
+        """
+        if not self.rag:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            # Get backup directory
+            private_db_path = Path(self.rag.private_database)
+            backup_dir = private_db_path.parent / "backups"
+
+            if not backup_dir.exists():
+                return {
+                    "commandId": command_id,
+                    "success": True,
+                    "message": "No backups found",
+                    "data": {
+                        "backups": []
+                    },
+                    "timestamp": datetime.now().isoformat()
+                }
+
+            # List all .db files in backup directory
+            backups = []
+            for backup_file in sorted(backup_dir.glob("*.db"), reverse=True):
+                stat = backup_file.stat()
+                backups.append({
+                    "filename": backup_file.name,
+                    "size": stat.st_size,
+                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "path": str(backup_file)
+                })
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": f"Found {len(backups)} backup(s)",
+                "data": {
+                    "backups": backups,
+                    "count": len(backups)
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"List backups error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"List backups failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
 
