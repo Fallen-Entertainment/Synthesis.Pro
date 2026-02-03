@@ -15,6 +15,7 @@ namespace Synthesis.Editor
     {
         private const string SETUP_COMPLETE_KEY = "Synthesis.SetupComplete";
         private const string PYTHON_DOWNLOAD_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/downloads/python-embedded.zip";
+        private const string NODE_DOWNLOAD_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/downloads/node-embedded.zip";
         private const string MODELS_DOWNLOAD_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/downloads/models.zip";
 
         static FirstTimeSetup()
@@ -40,6 +41,7 @@ namespace Synthesis.Editor
                 "First-time setup required:\n" +
                 "• Initialize knowledge base databases\n" +
                 "• Download Python runtime (~50MB)\n" +
+                "• Download Node.js runtime (~20MB)\n" +
                 "• Download AI models (~200MB)\n" +
                 "• Configure system\n\n" +
                 "This will take a few minutes.\n\n" +
@@ -78,18 +80,22 @@ namespace Synthesis.Editor
                 }
 
                 // Step 2: Download Python runtime
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Python runtime...", 0.4f);
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Python runtime...", 0.3f);
                 await DownloadPythonRuntime();
 
-                // Step 3: Download models
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading AI models...", 0.6f);
+                // Step 3: Download Node.js runtime
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Node.js runtime...", 0.5f);
+                await DownloadNodeRuntime();
+
+                // Step 4: Download models
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading AI models...", 0.7f);
                 await DownloadModels();
 
-                // Step 4: Initialize Python environment
+                // Step 5: Initialize Python environment
                 EditorUtility.DisplayProgressBar("Synthesis Setup", "Setting up Python environment...", 0.8f);
                 InitializePythonEnvironment();
 
-                // Step 5: Create initial public DB content
+                // Step 6: Create initial public DB content
                 EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating initial content...", 0.9f);
                 CreateInitialPublicContent();
 
@@ -231,10 +237,9 @@ namespace Synthesis.Editor
 
         private static async Task DownloadPythonRuntime()
         {
-            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-            string targetDir = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "python");
+            string targetDir = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python");
 
-            if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir).Length > 0)
+            if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir, "python.exe").Length > 0)
             {
                 Debug.Log("[Synthesis] Python runtime already exists");
                 return;
@@ -246,13 +251,17 @@ namespace Synthesis.Editor
                 {
                     client.Timeout = System.TimeSpan.FromMinutes(5);
 
+                    Debug.Log("[Synthesis] Downloading Python runtime...");
                     var response = await client.GetAsync(PYTHON_DOWNLOAD_URL);
                     if (!response.IsSuccessStatusCode)
                     {
                         throw new System.Exception($"Download failed: {response.StatusCode}");
                     }
 
-                    var zipPath = "python-embedded.zip";
+                    string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_python_download");
+                    Directory.CreateDirectory(tempDir);
+                    var zipPath = Path.Combine(tempDir, "python-embedded.zip");
+
                     using (var fs = new FileStream(zipPath, FileMode.Create))
                     {
                         await response.Content.CopyToAsync(fs);
@@ -261,14 +270,66 @@ namespace Synthesis.Editor
                     // Extract zip
                     Directory.CreateDirectory(targetDir);
                     System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-                    File.Delete(zipPath);
 
-                    Debug.Log("[Synthesis] Python runtime downloaded");
+                    // Cleanup
+                    Directory.Delete(tempDir, true);
+
+                    Debug.Log($"[Synthesis] Python runtime downloaded to {targetDir}");
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning($"[Synthesis] Python download failed: {e.Message}. User will need to install manually.");
+                Debug.LogError($"[Synthesis] Python download failed: {e.Message}");
+                throw;
+            }
+        }
+
+        private static async Task DownloadNodeRuntime()
+        {
+            string targetDir = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "node");
+
+            if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir, "node.exe").Length > 0)
+            {
+                Debug.Log("[Synthesis] Node.js runtime already exists");
+                return;
+            }
+
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = System.TimeSpan.FromMinutes(5);
+
+                    Debug.Log("[Synthesis] Downloading Node.js runtime...");
+                    var response = await client.GetAsync(NODE_DOWNLOAD_URL);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new System.Exception($"Download failed: {response.StatusCode}");
+                    }
+
+                    string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_node_download");
+                    Directory.CreateDirectory(tempDir);
+                    var zipPath = Path.Combine(tempDir, "node-embedded.zip");
+
+                    using (var fs = new FileStream(zipPath, FileMode.Create))
+                    {
+                        await response.Content.CopyToAsync(fs);
+                    }
+
+                    // Extract zip
+                    Directory.CreateDirectory(targetDir);
+                    System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
+
+                    // Cleanup
+                    Directory.Delete(tempDir, true);
+
+                    Debug.Log($"[Synthesis] Node.js runtime downloaded to {targetDir}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Synthesis] Node.js download failed: {e.Message}");
+                throw;
             }
         }
 
@@ -317,28 +378,39 @@ namespace Synthesis.Editor
 
         private static void InitializePythonEnvironment()
         {
-            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-            string pythonPath = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "python", "python.exe");
+            string pythonPath = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
 
             if (!File.Exists(pythonPath))
             {
-                Debug.LogWarning("[Synthesis] Python runtime not found");
+                Debug.LogWarning("[Synthesis] Python runtime not found - skipping package installation");
                 return;
             }
 
             try
             {
                 // Install required packages
+                Debug.Log("[Synthesis] Installing Python packages...");
                 var process = new System.Diagnostics.Process();
                 process.StartInfo.FileName = pythonPath;
                 process.StartInfo.Arguments = "-m pip install sqlite-rag chromadb sentence-transformers";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
                 process.StartInfo.CreateNoWindow = true;
                 process.Start();
+
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
                 process.WaitForExit();
 
-                Debug.Log("[Synthesis] Python environment configured");
+                if (process.ExitCode == 0)
+                {
+                    Debug.Log("[Synthesis] Python packages installed successfully");
+                }
+                else
+                {
+                    Debug.LogWarning($"[Synthesis] Python package installation warnings: {error}");
+                }
             }
             catch (System.Exception e)
             {
