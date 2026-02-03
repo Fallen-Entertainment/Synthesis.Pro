@@ -6,7 +6,7 @@
 
 ---
 
-**AI-Powered Unity Development Assistant with Privacy-First Architecture**
+**AI Collaboration for Unity Development with Privacy-First Architecture**
 
 Built in partnership between human vision and AI capability.
 
