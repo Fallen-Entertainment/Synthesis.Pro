@@ -233,7 +233,7 @@ namespace Synthesis.Editor
         [MenuItem(MenuRoot + "Documentation/Quick Start", false, 40)]
         public static void OpenQuickStart()
         {
-            string path = "Assets/Synthesis_AI/Documentation/QUICK_START.md";
+            string path = "Assets/Synthesis.Pro/Documentation/QUICK_START.md";
             var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (doc != null)
             {
@@ -249,7 +249,7 @@ namespace Synthesis.Editor
         [MenuItem(MenuRoot + "Documentation/Commands Reference", false, 41)]
         public static void OpenCommandsReference()
         {
-            string path = "Assets/Synthesis_AI/Documentation/COMMANDS_REFERENCE.md";
+            string path = "Assets/Synthesis.Pro/Documentation/COMMANDS_REFERENCE.md";
             var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (doc != null)
             {
@@ -265,7 +265,7 @@ namespace Synthesis.Editor
         [MenuItem(MenuRoot + "Documentation/Integration Guide", false, 42)]
         public static void OpenIntegrationGuide()
         {
-            string path = "Assets/Synthesis_AI/Documentation/SYNLINK_INTEGRATION_GUIDE.md";
+            string path = "Assets/Synthesis.Pro/Documentation/SYNLINK_INTEGRATION_GUIDE.md";
             var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (doc != null)
             {
@@ -368,12 +368,12 @@ namespace Synthesis.Editor
             try
             {
                 // Run Python export command
-                string pythonCmd = $"python Assets/Synthesis_AI/detective_mode.py --export-personal \"{savePath}\"";
+                string pythonCmd = $"python Assets/Synthesis.Pro/detective_mode.py --export-personal \"{savePath}\"";
                 Debug.Log($"[Detective Mode] Running: {pythonCmd}");
 
                 System.Diagnostics.Process process = new System.Diagnostics.Process();
                 process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"Assets/Synthesis_AI/detective_mode.py --export-personal \"{savePath}\"";
+                process.StartInfo.Arguments = $"Assets/Synthesis.Pro/detective_mode.py --export-personal \"{savePath}\"";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
@@ -445,7 +445,7 @@ namespace Synthesis.Editor
             {
                 System.Diagnostics.Process process = new System.Diagnostics.Process();
                 process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"Assets/Synthesis_AI/detective_mode.py --export-shareable \"{savePath}\"";
+                process.StartInfo.Arguments = $"Assets/Synthesis.Pro/detective_mode.py --export-shareable \"{savePath}\"";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.CreateNoWindow = true;
@@ -506,7 +506,7 @@ namespace Synthesis.Editor
             {
                 System.Diagnostics.Process process = new System.Diagnostics.Process();
                 process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"Assets/Synthesis_AI/detective_mode.py --export-solutions \"{savePath}\"";
+                process.StartInfo.Arguments = $"Assets/Synthesis.Pro/detective_mode.py --export-solutions \"{savePath}\"";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.CreateNoWindow = true;
@@ -533,7 +533,7 @@ namespace Synthesis.Editor
         [MenuItem(MenuRoot + "Detective Mode/Documentation/Privacy Guidelines", false, 54)]
         public static void OpenPrivacyGuidelines()
         {
-            string path = "Assets/Synthesis_AI/DETECTIVE_MODE_AI_GUIDELINES.md";
+            string path = "Assets/Synthesis.Pro/DETECTIVE_MODE_AI_GUIDELINES.md";
             var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (doc != null)
             {
@@ -566,7 +566,7 @@ namespace Synthesis.Editor
         [MenuItem(MenuRoot + "Detective Mode/Documentation/Feature Overview", false, 55)]
         public static void OpenDetectiveModeOverview()
         {
-            string path = "Assets/Synthesis_AI/AI_CONFIDENCE_FEATURE.md";
+            string path = "Assets/Synthesis.Pro/AI_CONFIDENCE_FEATURE.md";
             var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (doc != null)
             {
@@ -582,7 +582,7 @@ namespace Synthesis.Editor
         [MenuItem(MenuRoot + "Detective Mode/Documentation/Usage Guide", false, 56)]
         public static void OpenDetectiveModeUsage()
         {
-            string path = "Assets/Synthesis_AI/DETECTIVE_MODE_USAGE.md";
+            string path = "Assets/Synthesis.Pro/DETECTIVE_MODE_USAGE.md";
             var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
             if (doc != null)
             {
@@ -601,7 +601,7 @@ namespace Synthesis.Editor
             EditorUtility.DisplayDialog(
                 "View AI Confidence Report",
                 "To view the AI confidence report, run:\n\n" +
-                "python Assets/Synthesis_AI/detective_mode.py --confidence-report\n\n" +
+                "python Assets/Synthesis.Pro/detective_mode.py --confidence-report\n\n" +
                 "This shows:\n" +
                 "   • AI accuracy by error type\n" +
                 "   • Hallucination patterns\n" +
