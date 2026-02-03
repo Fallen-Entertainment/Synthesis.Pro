@@ -20,7 +20,7 @@ Built in partnership between human vision and AI capability.
 
 ## Quick Start
 
-1. **Open Synthesis.Pro**: Unity Menu → Window → Synthesis → Synthesis Pro
+1. **Open Synthesis.Pro**: Unity Menu → Tools → Synthesis → Synthesis Pro
 2. **Auto-Setup**: Public database downloads automatically on first launch
 3. **Connect**: WebSocket server starts automatically
 4. **Use**: Chat, Search, and manage your private knowledge base
@@ -186,7 +186,7 @@ After installing, verify everything works:
 - Search for `Synthesis` component (Add Component window)
 
 ### **2. Check Menu Items**
-- `Synthesis → Apply Recorded Changes` should appear in menu
+- `Tools → Synthesis → Apply Recorded Changes` should appear in menu
 
 ### **3. Test Component**
 - Create new GameObject
