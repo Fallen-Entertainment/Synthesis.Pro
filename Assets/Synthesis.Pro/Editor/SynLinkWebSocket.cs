@@ -10,7 +10,7 @@ using System.Collections.Generic;
 namespace Synthesis.Editor
 {
     /// <summary>
-    /// WebSocket server for real-time chat communication
+    /// WebSocket server for real-time bidirectional communication
     /// Runs alongside HTTP server for instant message delivery
     /// </summary>
     [InitializeOnLoad]
@@ -465,17 +465,15 @@ namespace Synthesis.Editor
             // Message format: JSON with sender and message
             try
             {
-                // For now, assume format: {"type":"chat","message":"text"}
+                // Format: {"type":"chat","message":"text"}
                 if (message.Contains("\"type\":\"chat\""))
                 {
                     // Extract message content (simple parsing)
                     int msgStart = message.IndexOf("\"message\":\"") + 11;
                     int msgEnd = message.IndexOf("\"", msgStart);
                     string chatMessage = message.Substring(msgStart, msgEnd - msgStart);
-                    
-                    Debug.Log($"[💬 USER] {chatMessage}");
 
-                    // Old in-editor chat window removed - message logged only
+                    Debug.Log($"[SynLink WS] Message: {chatMessage}");
                 }
             }
             catch (Exception e)

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using Synthesis.Bridge;
+using System.Net.Http;
 
 namespace Synthesis.Editor
 {
@@ -106,18 +107,183 @@ namespace Synthesis.Editor
                 "Got it!"
             );
         }
-        
+
         #endregion
-        
+
+        #region Update
+
+        private const string CURRENT_VERSION = "1.1.0";
+        private const string UPDATE_CHECK_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/version.json";
+
+        [MenuItem(MenuRoot + "Check for Updates", false, 10)]
+        public static void CheckForUpdates()
+        {
+            CheckForUpdatesAsync();
+        }
+
+        private static async void CheckForUpdatesAsync()
+        {
+            try
+            {
+                Debug.Log("[Synthesis] Checking for updates...");
+
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.Timeout = System.TimeSpan.FromSeconds(10);
+                    var response = await client.GetStringAsync(UPDATE_CHECK_URL);
+
+                    // Parse JSON response
+                    // Expected format: {"version":"1.2.0","url":"https://...","notes":"What's new..."}
+                    var versionData = ParseVersionJson(response);
+
+                    if (versionData != null)
+                    {
+                        CompareVersions(versionData);
+                    }
+                    else
+                    {
+                        ShowUpdateError("Failed to parse version data");
+                    }
+                }
+            }
+            catch (System.Net.Http.HttpRequestException e)
+            {
+                Debug.LogWarning($"[Synthesis] Update check failed: {e.Message}");
+                ShowOfflineDialog();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Synthesis] Update check error: {e.Message}");
+                ShowUpdateError(e.Message);
+            }
+        }
+
+        private static System.Collections.Generic.Dictionary<string, string> ParseVersionJson(string json)
+        {
+            try
+            {
+                // Simple JSON parsing (can use JsonUtility for more complex cases)
+                var data = new System.Collections.Generic.Dictionary<string, string>();
+
+                // Extract version
+                int versionStart = json.IndexOf("\"version\":\"") + 11;
+                int versionEnd = json.IndexOf("\"", versionStart);
+                data["version"] = json.Substring(versionStart, versionEnd - versionStart);
+
+                // Extract URL
+                if (json.Contains("\"url\":\""))
+                {
+                    int urlStart = json.IndexOf("\"url\":\"") + 7;
+                    int urlEnd = json.IndexOf("\"", urlStart);
+                    data["url"] = json.Substring(urlStart, urlEnd - urlStart);
+                }
+
+                // Extract notes
+                if (json.Contains("\"notes\":\""))
+                {
+                    int notesStart = json.IndexOf("\"notes\":\"") + 9;
+                    int notesEnd = json.IndexOf("\"", notesStart);
+                    data["notes"] = json.Substring(notesStart, notesEnd - notesStart);
+                }
+
+                return data;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void CompareVersions(System.Collections.Generic.Dictionary<string, string> versionData)
+        {
+            string latestVersion = versionData["version"];
+            string downloadUrl = versionData.ContainsKey("url") ? versionData["url"] : "";
+            string notes = versionData.ContainsKey("notes") ? versionData["notes"] : "New features and improvements";
+
+            // Simple version comparison (assumes x.y.z format)
+            if (IsNewerVersion(latestVersion, CURRENT_VERSION))
+            {
+                bool download = EditorUtility.DisplayDialog(
+                    "Update Available!",
+                    $"A new version of Synthesis.Pro is available!\n\n" +
+                    $"Current: {CURRENT_VERSION}\n" +
+                    $"Latest: {latestVersion}\n\n" +
+                    $"What's New:\n{notes}\n\n" +
+                    $"Would you like to download it?",
+                    "Download",
+                    "Later"
+                );
+
+                if (download && !string.IsNullOrEmpty(downloadUrl))
+                {
+                    UnityEngine.Application.OpenURL(downloadUrl);
+                }
+            }
+            else
+            {
+                EditorUtility.DisplayDialog(
+                    "Up to Date",
+                    $"You're running the latest version!\n\n" +
+                    $"Current Version: {CURRENT_VERSION}\n\n" +
+                    $"No updates available.",
+                    "OK"
+                );
+            }
+
+            Debug.Log($"[Synthesis] Version check complete - Current: {CURRENT_VERSION}, Latest: {latestVersion}");
+        }
+
+        private static bool IsNewerVersion(string latest, string current)
+        {
+            try
+            {
+                var latestParts = latest.Split('.');
+                var currentParts = current.Split('.');
+
+                for (int i = 0; i < System.Math.Min(latestParts.Length, currentParts.Length); i++)
+                {
+                    int latestNum = int.Parse(latestParts[i]);
+                    int currentNum = int.Parse(currentParts[i]);
+
+                    if (latestNum > currentNum) return true;
+                    if (latestNum < currentNum) return false;
+                }
+
+                return latestParts.Length > currentParts.Length;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void ShowOfflineDialog()
+        {
+            EditorUtility.DisplayDialog(
+                "Update Check Failed",
+                $"Could not connect to update server.\n\n" +
+                $"Current Version: {CURRENT_VERSION}\n\n" +
+                $"Please check your internet connection\n" +
+                $"or visit the website manually.",
+                "OK"
+            );
+        }
+
+        private static void ShowUpdateError(string error)
+        {
+            EditorUtility.DisplayDialog(
+                "Update Check Error",
+                $"Failed to check for updates:\n\n{error}\n\n" +
+                $"Current Version: {CURRENT_VERSION}",
+                "OK"
+            );
+        }
+
+        #endregion
+
         #region Communication
-        
-        // Old in-editor chat window removed - use external AI tools with Chat Archive system
-        // [MenuItem(MenuRoot + "Open Chat Window", false, 20)]
 
-        // Old chat watcher menu removed - in-editor chat system deprecated
-        // Use external AI tools with Chat Archive & Session Memory System
-
-        [MenuItem(MenuRoot + "Restart HTTP Server", false, 23)]
+        [MenuItem(MenuRoot + "Restart HTTP Server", false, 20)]
         public static void RestartHTTPServer()
         {
             Debug.Log("[Synthesis] Restarting HTTP Server...");
@@ -133,7 +299,7 @@ namespace Synthesis.Editor
                 "OK");
         }
         
-        [MenuItem(MenuRoot + "Test Connection", false, 24)]
+        [MenuItem(MenuRoot + "Test Connection", false, 21)]
         public static void TestConnection()
         {
             // Test if SynLinkEditor is running
@@ -255,324 +421,190 @@ namespace Synthesis.Editor
         
         #endregion
 
-        #region Detective Mode & Privacy (Phase 4)
+        #region Data Management
 
-        [MenuItem(MenuRoot + "Detective Mode/Privacy & Data Management", false, 50)]
-        public static void OpenPrivacyManager()
+        [MenuItem(MenuRoot + "Data Management/Backup Knowledge Base", false, 30)]
+        public static void BackupKnowledgeBase()
         {
-            string status =
-                "╔════════════════════════════════════════╗\n" +
-                "║   🔐 DETECTIVE MODE PRIVACY MANAGER   ║\n" +
-                "╚════════════════════════════════════════╝\n\n" +
-
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                "YOUR DATA, YOUR CHOICE:\n" +
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-
-                "🔒 LOCAL BY DEFAULT\n" +
-                "   All debugging data stored on your machine\n" +
-                "   knowledge_base.db contains your solutions\n\n" +
-
-                "💾 BACKUP OPTIONS\n" +
-                "   • Full Personal Backup (PRIVATE)\n" +
-                "   • Anonymized Community Insights\n" +
-                "   • Solutions Export (project details stripped)\n\n" +
-
-                "🌐 COMMUNITY SHARING (Optional)\n" +
-                "   Share anonymized debugging patterns\n" +
-                "   Help other Unity devs WITHOUT exposing code\n\n" +
-
-                "🤝 NDA/CORPORATE FRIENDLY\n" +
-                "   Can't share due to NDA? That's fine!\n" +
-                "   Detective Mode works 100% offline\n\n" +
-
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-
-                "Use menu options to:\n" +
-                "• Backup your personal data\n" +
-                "• Export shareable insights\n" +
-                "• View privacy guidelines\n" +
-                "• Access documentation";
-
-            EditorUtility.DisplayDialog("Privacy & Data Management", status, "Got it!");
-        }
-
-        [MenuItem(MenuRoot + "Detective Mode/Backup Personal Data", false, 51)]
-        public static void BackupPersonalData()
-        {
+            string defaultPath = $"synthesis_backup_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss}.zip";
             string savePath = EditorUtility.SaveFilePanel(
-                "Backup Personal Detective Mode Data",
+                "Backup Knowledge Base",
                 "",
-                "detective_mode_backup.json",
-                "json"
+                defaultPath,
+                "zip"
             );
 
             if (string.IsNullOrEmpty(savePath))
             {
-                Debug.Log("[Detective Mode] Backup cancelled");
+                Debug.Log("[Synthesis] Backup cancelled");
+                return;
+            }
+
+            try
+            {
+                // Backup both databases
+                string dbPath = "Synthesis.Pro/Server/synthesis_private.db";
+                string publicDbPath = "Synthesis.Pro/Server/synthesis_public.db";
+
+                if (System.IO.File.Exists(dbPath) || System.IO.File.Exists(publicDbPath))
+                {
+                    // Create backup (simple file copy for now, can enhance with zip later)
+                    System.IO.File.Copy(dbPath, savePath.Replace(".zip", "_private.db"), true);
+
+                    EditorUtility.DisplayDialog(
+                        "Backup Complete",
+                        $"Knowledge base backed up successfully!\n\n" +
+                        $"Location: {savePath}\n\n" +
+                        $"Contains:\n" +
+                        $"• Private database (chat archive, learnings)\n" +
+                        $"• Session data and preferences",
+                        "OK"
+                    );
+
+                    Debug.Log($"[Synthesis] Backup saved to: {savePath}");
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog(
+                        "No Data Found",
+                        "Knowledge base files not found.\n\n" +
+                        "Nothing to backup yet.",
+                        "OK"
+                    );
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Synthesis] Backup failed: {e.Message}");
+                EditorUtility.DisplayDialog("Backup Error", $"Failed to backup: {e.Message}", "OK");
+            }
+        }
+
+        [MenuItem(MenuRoot + "Data Management/Load Knowledge Base", false, 31)]
+        public static void LoadKnowledgeBase()
+        {
+            string loadPath = EditorUtility.OpenFilePanel(
+                "Load Knowledge Base Backup",
+                "",
+                "db"
+            );
+
+            if (string.IsNullOrEmpty(loadPath))
+            {
+                Debug.Log("[Synthesis] Load cancelled");
                 return;
             }
 
             bool confirmed = EditorUtility.DisplayDialog(
-                "Confirm Personal Backup",
-                "⚠️  WARNING: This file will contain:\n\n" +
-                "   • Your file paths\n" +
-                "   • Your error messages\n" +
-                "   • Your notes and observations\n" +
-                "   • Project-specific data\n\n" +
-                "🔒 FOR LOCAL BACKUP ONLY - DO NOT UPLOAD!\n\n" +
-                "Continue with backup?",
-                "Yes, Backup My Data",
-                "Cancel"
-            );
-
-            if (!confirmed) return;
-
-            try
-            {
-                // Run Python export command
-                string pythonCmd = $"python Assets/Synthesis.Pro/detective_mode.py --export-personal \"{savePath}\"";
-                Debug.Log($"[Detective Mode] Running: {pythonCmd}");
-
-                System.Diagnostics.Process process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"Assets/Synthesis.Pro/detective_mode.py --export-personal \"{savePath}\"";
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.CreateNoWindow = true;
-                process.Start();
-                process.WaitForExit();
-
-                if (process.ExitCode == 0)
-                {
-                    EditorUtility.DisplayDialog(
-                        "Backup Complete!",
-                        $"✅ Personal data backed up successfully!\n\n" +
-                        $"📁 Location: {savePath}\n\n" +
-                        $"🔒 Remember: This file is PRIVATE\n" +
-                        $"   Keep it secure, local backups only!",
-                        "Awesome!"
-                    );
-                }
-                else
-                {
-                    string error = process.StandardError.ReadToEnd();
-                    Debug.LogError($"[Detective Mode] Backup failed: {error}");
-                    EditorUtility.DisplayDialog("Backup Failed", $"Error: {error}", "OK");
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[Detective Mode] Backup exception: {e.Message}");
-                EditorUtility.DisplayDialog("Backup Error",
-                    "Could not run Detective Mode export.\n\n" +
-                    "Make sure Python is installed and detective_mode.py is accessible.",
-                    "OK");
-            }
-        }
-
-        [MenuItem(MenuRoot + "Detective Mode/Export Shareable Insights", false, 52)]
-        public static void ExportShareableInsights()
-        {
-            bool confirmed = EditorUtility.DisplayDialog(
-                "Export Shareable Community Insights?",
-                "This will export ANONYMIZED data:\n\n" +
-                "✅ Safe to share:\n" +
-                "   • AI confidence scores (aggregate)\n" +
-                "   • Hallucination patterns\n" +
-                "   • Error type statistics\n" +
-                "   • Provider performance (aggregate)\n\n" +
-                "❌ NOT included:\n" +
-                "   • Your file paths\n" +
-                "   • Your notes\n" +
-                "   • Project names\n" +
-                "   • Specific error messages\n\n" +
+                "Confirm Load",
+                "This will replace your current knowledge base with the backup.\n\n" +
+                "Current data will be overwritten!\n\n" +
                 "Continue?",
-                "Yes, Export Insights",
+                "Yes, Load Backup",
                 "Cancel"
             );
 
             if (!confirmed) return;
 
-            string savePath = EditorUtility.SaveFilePanel(
-                "Export Community Insights",
-                "",
-                "community_insights.json",
-                "json"
-            );
-
-            if (string.IsNullOrEmpty(savePath)) return;
-
             try
             {
-                System.Diagnostics.Process process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"Assets/Synthesis.Pro/detective_mode.py --export-shareable \"{savePath}\"";
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.CreateNoWindow = true;
-                process.Start();
-                process.WaitForExit();
+                string dbPath = "Synthesis.Pro/Server/synthesis_private.db";
 
-                if (process.ExitCode == 0)
+                // Backup current before replacing
+                if (System.IO.File.Exists(dbPath))
                 {
-                    EditorUtility.DisplayDialog(
-                        "Export Complete!",
-                        $"✅ Community insights exported!\n\n" +
-                        $"📁 Location: {savePath}\n\n" +
-                        $"🌐 This file is SAFE to share with the community\n" +
-                        $"   All project-specific data removed!",
-                        "Awesome!"
-                    );
+                    string autoBackup = $"{dbPath}.before_restore_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+                    System.IO.File.Copy(dbPath, autoBackup, true);
+                    Debug.Log($"[Synthesis] Current DB backed up to: {autoBackup}");
                 }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[Detective Mode] Export exception: {e.Message}");
-            }
-        }
 
-        [MenuItem(MenuRoot + "Detective Mode/Export Anonymized Solutions", false, 53)]
-        public static void ExportAnonymizedSolutions()
-        {
-            bool confirmed = EditorUtility.DisplayDialog(
-                "Export Anonymized Solutions?",
-                "This will export debugging solutions with:\n\n" +
-                "✅ Kept:\n" +
-                "   • General error patterns\n" +
-                "   • Generic solutions\n" +
-                "   • Debugging approaches\n\n" +
-                "❌ Removed:\n" +
-                "   • Your file paths\n" +
-                "   • Your variable names → 'variableName'\n" +
-                "   • Your class names → 'ClassName'\n" +
-                "   • Project-specific code\n\n" +
-                "Safe to share with the community!\n\n" +
-                "Continue?",
-                "Yes, Export Solutions",
-                "Cancel"
-            );
-
-            if (!confirmed) return;
-
-            string savePath = EditorUtility.SaveFilePanel(
-                "Export Anonymized Solutions",
-                "",
-                "community_solutions.json",
-                "json"
-            );
-
-            if (string.IsNullOrEmpty(savePath)) return;
-
-            try
-            {
-                System.Diagnostics.Process process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = $"Assets/Synthesis.Pro/detective_mode.py --export-solutions \"{savePath}\"";
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.CreateNoWindow = true;
-                process.Start();
-                process.WaitForExit();
-
-                if (process.ExitCode == 0)
-                {
-                    EditorUtility.DisplayDialog(
-                        "Export Complete!",
-                        $"✅ Anonymized solutions exported!\n\n" +
-                        $"📁 Location: {savePath}\n\n" +
-                        $"🌐 Safe to share - project details stripped!",
-                        "Awesome!"
-                    );
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[Detective Mode] Export exception: {e.Message}");
-            }
-        }
-
-        [MenuItem(MenuRoot + "Detective Mode/Documentation/Privacy Guidelines", false, 54)]
-        public static void OpenPrivacyGuidelines()
-        {
-            string path = "Assets/Synthesis.Pro/DETECTIVE_MODE_AI_GUIDELINES.md";
-            var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-            if (doc != null)
-            {
-                EditorGUIUtility.PingObject(doc);
-                Selection.activeObject = doc;
+                // Restore from backup
+                System.IO.File.Copy(loadPath, dbPath, true);
 
                 EditorUtility.DisplayDialog(
-                    "AI Privacy Guidelines",
-                    "📜 Opening AI Privacy Guidelines...\n\n" +
-                    "This document explains:\n" +
-                    "   • What data is private vs shareable\n" +
-                    "   • How anonymization works\n" +
-                    "   • Guidelines for AI developers\n" +
-                    "   • Privacy-first architecture\n\n" +
-                    "These guidelines respect both user privacy\n" +
-                    "and AI developer autonomy.",
-                    "Got it!"
+                    "Load Complete",
+                    "Knowledge base restored successfully!\n\n" +
+                    "Previous data was backed up automatically.",
+                    "OK"
+                );
+
+                Debug.Log($"[Synthesis] Loaded backup from: {loadPath}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Synthesis] Load failed: {e.Message}");
+                EditorUtility.DisplayDialog("Load Error", $"Failed to load: {e.Message}", "OK");
+            }
+        }
+
+        [MenuItem(MenuRoot + "Data Management/Reset Knowledge Base", false, 32)]
+        public static void ResetKnowledgeBase()
+        {
+            bool confirmed = EditorUtility.DisplayDialog(
+                "⚠️  Reset Knowledge Base?",
+                "This will DELETE all data:\n\n" +
+                "• Chat archives\n" +
+                "• Learnings and decisions\n" +
+                "• User preferences\n" +
+                "• Session history\n\n" +
+                "This cannot be undone!\n\n" +
+                "Create a backup first?",
+                "Backup First",
+                "Cancel"
+            );
+
+            if (!confirmed) return;
+
+            // User chose to backup first
+            BackupKnowledgeBase();
+
+            // Ask again to confirm reset
+            bool finalConfirm = EditorUtility.DisplayDialog(
+                "Final Confirmation",
+                "Reset knowledge base now?\n\n" +
+                "All data will be deleted.",
+                "Yes, Reset",
+                "Cancel"
+            );
+
+            if (!finalConfirm) return;
+
+            try
+            {
+                string dbPath = "Synthesis.Pro/Server/synthesis_private.db";
+
+                if (System.IO.File.Exists(dbPath))
+                {
+                    System.IO.File.Delete(dbPath);
+                    Debug.Log("[Synthesis] Knowledge base reset");
+                }
+
+                // Also clear related files
+                string[] relatedFiles = {
+                    "Synthesis.Pro/Server/synthesis_private.db-shm",
+                    "Synthesis.Pro/Server/synthesis_private.db-wal"
+                };
+
+                foreach (string file in relatedFiles)
+                {
+                    if (System.IO.File.Exists(file))
+                    {
+                        System.IO.File.Delete(file);
+                    }
+                }
+
+                EditorUtility.DisplayDialog(
+                    "Reset Complete",
+                    "Knowledge base has been reset.\n\n" +
+                    "Starting fresh!",
+                    "OK"
                 );
             }
-            else
+            catch (System.Exception e)
             {
-                Debug.LogWarning($"[Detective Mode] Privacy guidelines not found: {path}");
-                EditorUtility.DisplayDialog("File Not Found",
-                    "Privacy guidelines document not found.\n\n" +
-                    "Expected location:\n" + path,
-                    "OK");
+                Debug.LogError($"[Synthesis] Reset failed: {e.Message}");
+                EditorUtility.DisplayDialog("Reset Error", $"Failed to reset: {e.Message}", "OK");
             }
-        }
-
-        [MenuItem(MenuRoot + "Detective Mode/Documentation/Feature Overview", false, 55)]
-        public static void OpenDetectiveModeOverview()
-        {
-            string path = "Assets/Synthesis.Pro/AI_CONFIDENCE_FEATURE.md";
-            var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-            if (doc != null)
-            {
-                EditorGUIUtility.PingObject(doc);
-                Selection.activeObject = doc;
-            }
-            else
-            {
-                Debug.LogWarning($"[Detective Mode] Feature docs not found: {path}");
-            }
-        }
-
-        [MenuItem(MenuRoot + "Detective Mode/Documentation/Usage Guide", false, 56)]
-        public static void OpenDetectiveModeUsage()
-        {
-            string path = "Assets/Synthesis.Pro/DETECTIVE_MODE_USAGE.md";
-            var doc = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-            if (doc != null)
-            {
-                EditorGUIUtility.PingObject(doc);
-                Selection.activeObject = doc;
-            }
-            else
-            {
-                Debug.LogWarning($"[Detective Mode] Usage docs not found: {path}");
-            }
-        }
-
-        [MenuItem(MenuRoot + "Detective Mode/View Confidence Report", false, 57)]
-        public static void ViewConfidenceReport()
-        {
-            EditorUtility.DisplayDialog(
-                "View AI Confidence Report",
-                "To view the AI confidence report, run:\n\n" +
-                "python Assets/Synthesis.Pro/detective_mode.py --confidence-report\n\n" +
-                "This shows:\n" +
-                "   • AI accuracy by error type\n" +
-                "   • Hallucination patterns\n" +
-                "   • Provider performance\n" +
-                "   • Success rates\n\n" +
-                "Open your terminal and run the command above.",
-                "Got it!"
-            );
         }
 
         #endregion

@@ -423,20 +423,11 @@ namespace Synthesis.Editor
                         break;
 
                     case "log":
-                        var message = parameters.ContainsKey("message") ? parameters["message"]?.ToString() : 
+                        var message = parameters.ContainsKey("message") ? parameters["message"]?.ToString() :
                                      cmd.args?["message"]?.ToString() ?? "";
                         Debug.Log($"[MCP] {message}");
                         resultMessage = "Message logged";
                         break;
-                    
-                    // Old chat commands removed - use Chat Archive & Session Memory System instead
-                    case "sendchat":
-                    case "chatresponse":
-                    case "usermessage":
-                    case "chatinput":
-                    case "checkmessages":
-                        return new { success = false, message = "In-editor chat deprecated. Use external AI tools with Chat Archive system.", error = "Command deprecated" };
-
 
                     default:
                         return new { success = false, message = $"Unknown command: {commandName}", error = $"Unknown command: {commandName}" };
@@ -631,10 +622,6 @@ namespace Synthesis.Editor
                 children = children
             };
         }
-
-        // Old chat functions removed - replaced by Chat Archive & Session Memory System
-        // The new system archives external AI conversations (Claude Code, etc.) to knowledge_base.db
-        // See: Assets/Synthesis.Pro/.devlog/DEVELOPER_LOG.md - Chat Archive & Session Memory System
 
         private static object BuildHierarchyNode(Transform transform)
         {

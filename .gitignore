@@ -119,3 +119,7 @@ Assets/Synthesis.Pro/KnowledgeBase/python/
 # Synthesis.Pro - Migration artifacts
 Synthesis.Pro/Server/migration_log.txt
 nul
+
+# Synthesis.Pro - Asset Container (working directory, not for version control)
+/[Aa]ssets/Asset Container/
+/[Aa]ssets/Asset Container.meta

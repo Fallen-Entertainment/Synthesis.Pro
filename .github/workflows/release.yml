@@ -1,0 +1,114 @@
+name: Build and Release Unity Package
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.2.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version from Tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-
+
+      - name: Build Unity Package
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: StandaloneWindows64
+          buildMethod: ExportPackage.Export
+          versioning: Tag
+
+      - name: Create Release Notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## What's New in ${{ steps.version.outputs.version }}
+
+          ### Features
+          - Clean editor window UI
+          - Data management tools (Backup/Load/Reset)
+          - Automatic update checking
+          - Enhanced knowledge base system
+
+          ### Improvements
+          - Removed deprecated chat system
+          - Streamlined menu structure
+          - Better error handling
+
+          ### Installation
+          1. Download `Synthesis.Pro.unitypackage`
+          2. Import into your Unity project
+          3. Open `Synthesis > Check for Updates` to verify
+
+          Full documentation: https://fallen-entertainment.github.io/Synthesis.Pro/
+          EOF
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: Synthesis.Pro ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+
+      - name: Upload Unity Package to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Synthesis.Pro.unitypackage
+          asset_name: Synthesis.Pro.unitypackage
+          asset_content_type: application/octet-stream
+
+      - name: Update version.json for GitHub Pages
+        run: |
+          cat > version.json << 'EOF'
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/Synthesis.Pro.unitypackage",
+            "notes": "New features: Clean UI, Data management, Auto-update. See full release notes for details."
+          }
+          EOF
+
+      - name: Deploy version.json to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          keep_files: true
+          include: version.json
+          exclude: '*'
+
+      - name: Notify Success
+        run: |
+          echo "✅ Release ${{ steps.version.outputs.version }} published successfully!"
+          echo "📦 Package: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+          echo "🌐 Update endpoint: https://fallen-entertainment.github.io/Synthesis.Pro/version.json"
