@@ -114,7 +114,7 @@ __pycache__/
 # Large binary files that should be downloaded, not committed
 Synthesis.Pro/Server/python/
 Synthesis.Pro/Server/models/
-Assets/Synthesis_AI/KnowledgeBase/python/
+Assets/Synthesis.Pro/KnowledgeBase/python/
 
 # Synthesis.Pro - Migration artifacts
 Synthesis.Pro/Server/migration_log.txt

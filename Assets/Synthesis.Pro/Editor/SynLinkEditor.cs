@@ -648,7 +648,7 @@ namespace Synthesis.Editor
         {
             try
             {
-                string chatFile = "Assets/Synthesis_AI/chat_messages.json";
+                string chatFile = "Assets/Synthesis.Pro/chat_messages.json";
                 
                 // Read existing messages
                 List<Dictionary<string, string>> messages = new List<Dictionary<string, string>>();
@@ -729,7 +729,7 @@ namespace Synthesis.Editor
         {
             try
             {
-                string chatFile = "Assets/Synthesis_AI/chat_messages.json";
+                string chatFile = "Assets/Synthesis.Pro/chat_messages.json";
                 
                 if (!System.IO.File.Exists(chatFile))
                 {

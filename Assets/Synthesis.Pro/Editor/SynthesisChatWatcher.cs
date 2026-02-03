@@ -20,8 +20,8 @@ namespace Synthesis.Editor
         static SynthesisChatWatcher()
         {
             // Setup paths
-            pythonPath = Path.Combine(Application.dataPath, "Synthesis_AI", "KnowledgeBase", "python", "python.exe");
-            watcherScriptPath = Path.Combine(Application.dataPath, "Synthesis_AI", "chat_watcher.py");
+            pythonPath = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
+            watcherScriptPath = Path.Combine(Application.dataPath, "Synthesis.Pro", "chat_watcher.py");
             
             // Start watcher automatically when Unity opens
             EditorApplication.delayCall += () =>
@@ -34,6 +34,43 @@ namespace Synthesis.Editor
             
             // Stop watcher when Unity closes
             EditorApplication.quitting += StopWatcher;
+            EditorApplication.quitting += KillOrphanedPythonProcesses;
+        }
+
+        /// <summary>
+        /// Failsafe: Kill any Python processes that might be orphaned
+        /// </summary>
+        private static void KillOrphanedPythonProcesses()
+        {
+            try
+            {
+                // Get the embedded Python path
+                string embeddedPythonFolder = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python");
+
+                // Find all Python processes running from our embedded Python
+                var pythonProcesses = Process.GetProcessesByName("python");
+                foreach (var proc in pythonProcesses)
+                {
+                    try
+                    {
+                        // Check if it's our embedded Python
+                        if (proc.MainModule != null && proc.MainModule.FileName.Contains(embeddedPythonFolder))
+                        {
+                            UnityEngine.Debug.Log($"[Synthesis] Cleaning up orphaned Python process: {proc.Id}");
+                            proc.Kill();
+                            proc.WaitForExit(1000);
+                        }
+                    }
+                    catch
+                    {
+                        // Process might have already exited or access denied
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"[Synthesis] Error cleaning up Python processes: {e.Message}");
+            }
         }
         
         public static bool IsWatcherRunning()
@@ -72,12 +109,12 @@ namespace Synthesis.Editor
             if (!File.Exists(pythonPath))
             {
                 UnityEngine.Debug.LogError($"[Synthesis] Python not found at: {pythonPath}\n" +
-                    "Please run Assets/Synthesis_AI/KnowledgeBase/setup_kb.bat first");
+                    "Please run Assets/Synthesis.Pro/KnowledgeBase/setup_kb.bat first");
 
                 EditorUtility.DisplayDialog(
                     "Python Not Found",
                     "Chat Watcher requires Python from the Knowledge Base.\n\n" +
-                    "Please run: Assets/Synthesis_AI/KnowledgeBase/setup_kb.bat\n\n" +
+                    "Please run: Assets/Synthesis.Pro/KnowledgeBase/setup_kb.bat\n\n" +
                     "This will install embedded Python (no system install needed).",
                     "OK"
                 );
@@ -140,15 +177,30 @@ namespace Synthesis.Editor
         public static void StopWatcher()
         {
             if (watcherProcess == null) return;
-            
+
             try
             {
                 if (!watcherProcess.HasExited)
                 {
-                    watcherProcess.Kill();
-                    watcherProcess.WaitForExit(2000);
+                    // Kill the entire process tree to ensure child processes are also terminated
+                    try
+                    {
+                        // Try to kill with entire process tree (Unity 2021.2+ / .NET Standard 2.1+)
+                        watcherProcess.Kill(true);
+                    }
+                    catch
+                    {
+                        // Fallback to regular kill if process tree killing isn't available
+                        watcherProcess.Kill();
+                    }
+
+                    // Give it time to shut down gracefully
+                    if (!watcherProcess.WaitForExit(3000))
+                    {
+                        UnityEngine.Debug.LogWarning("[Synthesis] Chat Watcher did not exit gracefully, forced termination");
+                    }
                 }
-                
+
                 watcherProcess.Dispose();
                 watcherProcess = null;
 
@@ -157,6 +209,8 @@ namespace Synthesis.Editor
             catch (Exception e)
             {
                 UnityEngine.Debug.LogWarning($"[Synthesis] Error stopping watcher: {e.Message}");
+                // Still try to null out the reference
+                watcherProcess = null;
             }
         }
         
