@@ -1,10 +1,10 @@
-# Synthesis AI - Complete Feature List
+# Synthesis Pro - Complete Feature List
 
 *Your AI Creative Partner for Unity - All Features at a Glance*
 
-## What Can Synthesis AI Do?
+## What Can Synthesis Pro Do?
 
-**Synthesis AI transforms Unity development by letting you control your entire project through conversation with AI assistants like Claude, Cursor, or VS Code Cline.** Create and modify GameObjects, adjust components, manipulate transforms, manage materials, test UI in real-time, generate 2D sprites with DALL-E, run automated tests, search through your scenes, batch-process hundreds of objects, and access a comprehensive knowledge base with 2,497 code examples—all without leaving your AI chat. With native MCP (Model Context Protocol) support, 100+ built-in tools, and a self-learning knowledge system, Synthesis AI handles everything from rapid prototyping and live debugging to automated testing and CI/CD integration. Simply tell your AI what you want to build, and watch your Unity project come to life through natural conversation. No compilation waits, no Play Mode stops, no context switching—just pure creative flow where you and AI work as one seamless team.
+**Synthesis Pro transforms Unity development by letting you control your entire project through conversation with AI assistants like Claude, Cursor, or VS Code Cline.** Create and modify GameObjects, adjust components, manipulate transforms, manage materials, test UI in real-time, generate 2D sprites with DALL-E, run automated tests, search through your scenes, batch-process hundreds of objects, and access a comprehensive knowledge base with 2,497 code examples—all without leaving your AI chat. With native MCP (Model Context Protocol) support, 100+ built-in tools, and a self-learning knowledge system, Synthesis AI handles everything from rapid prototyping and live debugging to automated testing and CI/CD integration. Simply tell your AI what you want to build, and watch your Unity project come to life through natural conversation. No compilation waits, no Play Mode stops, no context switching—just pure creative flow where you and AI work as one seamless team.
 
 ---
 
