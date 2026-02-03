@@ -123,3 +123,5 @@ nul
 # Synthesis.Pro - Asset Container (working directory, not for version control)
 /[Aa]ssets/Asset Container/
 /[Aa]ssets/Asset Container.meta
+# But track the README explaining its purpose
+!/[Aa]ssets/Asset Container/README.md
