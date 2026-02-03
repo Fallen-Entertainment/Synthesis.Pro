@@ -562,7 +562,15 @@ namespace Synthesis.Editor
                 Selection.activeObject = folder;
             }
         }
-        
+
+        [MenuItem(MenuRoot + "Open Project Folder", false, 50)]
+        public static void OpenProjectFolder()
+        {
+            string projectPath = System.IO.Path.GetFullPath(Application.dataPath + "/..");
+            EditorUtility.RevealInFinder(projectPath);
+            Debug.Log($"[Synthesis] Opened project folder: {projectPath}");
+        }
+
         #endregion
 
         #region Data Management
