@@ -1,5 +1,6 @@
 {
-  "version": "1.1.0",
-  "url": "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/latest/download/Synthesis.Pro.unitypackage",
-  "notes": "Initial release: AI-Unity integration, RAG system, Knowledge base management, Automated updates"
+  "version": "1.1.0-beta",
+  "status": "beta",
+  "url": "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-beta/Synthesis.Pro.unitypackage",
+  "notes": "🚧 BETA RELEASE - Early access for community feedback\n\nFeatures:\n• AI-Unity integration with MCP protocol\n• RAG-powered knowledge base system\n• Privacy-first dual database architecture\n• Automated setup and updates\n• Community knowledge sync\n\nFeedback: github.com/Fallen-Entertainment/Synthesis.Pro/issues"
 }
