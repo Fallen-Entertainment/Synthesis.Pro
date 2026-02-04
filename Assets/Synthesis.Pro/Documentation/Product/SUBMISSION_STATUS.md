@@ -1,8 +1,9 @@
 # Asset Store Submission Status
 
-**Package:** Synthesis.Pro v1.1.0-beta  
-**Status:** Ready for Submission  
+**Package:** Synthesis.Pro v1.1.0-beta
+**Status:** READY FOR SUBMISSION - Option A (Download-on-Demand)
 **Date:** 2026-02-03
+**Strategy:** Download-on-demand with legal basis from EULA
 
 ---
 
@@ -33,6 +34,21 @@
 6. **Executables Removed (Section 1.5.a)**
    - All .exe files removed from package ✅
    - Download-on-demand implementation ✅
+
+---
+
+## Legal Basis for Download-on-Demand
+
+**Unity Asset Store EULA Research (2026-02-03):**
+
+Key findings from Unity Asset Store End User License Agreement:
+- ✅ Commercial use allowed (royalty-free)
+- ✅ Assets can be "embedded as components of electronic applications"
+- ✅ Third-party content requires third-party notice file (completed)
+- ✅ Cannot redistribute raw assets, but downloading from YOUR server is compliant
+- ✅ No explicit prohibition of download-on-demand for dependencies
+
+**Decision:** Proceed with download-on-demand approach. EULA does not prohibit this method, and it maintains user experience while achieving technical compliance.
 
 ---
 
