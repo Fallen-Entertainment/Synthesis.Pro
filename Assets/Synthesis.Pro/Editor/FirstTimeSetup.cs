@@ -21,10 +21,6 @@ namespace Synthesis.Editor
 
         static FirstTimeSetup()
         {
-            // CRITICAL: Ensure Newtonsoft.Json is installed FIRST
-            // This must run before any other setup code that might need JSON serialization
-            EditorApplication.delayCall += EnsureNewtonsoftJson;
-
             // Check if setup already completed
             if (EditorPrefs.GetBool(SETUP_COMPLETE_KEY, false))
             {
@@ -33,79 +29,6 @@ namespace Synthesis.Editor
 
             // Delay to let Unity finish initializing
             EditorApplication.delayCall += RunFirstTimeSetup;
-        }
-
-        /// <summary>
-        /// Ensures Newtonsoft.Json package is installed
-        /// Required for Synthesis.Pro to function
-        /// </summary>
-        private static void EnsureNewtonsoftJson()
-        {
-            string manifestPath = Path.Combine(Application.dataPath, "..", "Packages", "manifest.json");
-
-            try
-            {
-                if (!File.Exists(manifestPath))
-                {
-                    Debug.LogError("[Synthesis] manifest.json not found!");
-                    return;
-                }
-
-                string manifestContent = File.ReadAllText(manifestPath);
-
-                // Check if Newtonsoft.Json is already in manifest
-                if (manifestContent.Contains("\"com.unity.nuget.newtonsoft-json\""))
-                {
-                    // Already installed
-                    return;
-                }
-
-                Debug.Log("[Synthesis] Adding Newtonsoft.Json dependency...");
-
-                // Simple string manipulation to add the dependency
-                // Find the "dependencies" section and add our package
-                int depsIndex = manifestContent.IndexOf("\"dependencies\"");
-                if (depsIndex == -1)
-                {
-                    Debug.LogError("[Synthesis] Could not find dependencies in manifest.json");
-                    return;
-                }
-
-                // Find the opening brace after "dependencies"
-                int braceIndex = manifestContent.IndexOf('{', depsIndex);
-                if (braceIndex == -1)
-                {
-                    Debug.LogError("[Synthesis] Invalid manifest.json format");
-                    return;
-                }
-
-                // Insert our dependency right after the opening brace
-                string newtonsoftEntry = "\n    \"com.unity.nuget.newtonsoft-json\": \"3.2.1\",";
-                manifestContent = manifestContent.Insert(braceIndex + 1, newtonsoftEntry);
-
-                // Write back to file
-                File.WriteAllText(manifestPath, manifestContent);
-
-                Debug.Log("[Synthesis] ✅ Newtonsoft.Json added to manifest - Unity will refresh packages");
-
-                // Unity will automatically detect the manifest change and refresh packages
-                AssetDatabase.Refresh();
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[Synthesis] Failed to add Newtonsoft.Json: {e.Message}");
-
-                EditorUtility.DisplayDialog(
-                    "Dependency Required",
-                    "Synthesis.Pro requires Newtonsoft.Json.\n\n" +
-                    "Please add it manually:\n" +
-                    "1. Window → Package Manager\n" +
-                    "2. Click '+' → Add package by name\n" +
-                    "3. Enter: com.unity.nuget.newtonsoft-json\n" +
-                    "4. Click 'Add'",
-                    "OK"
-                );
-            }
         }
 
         private static void RunFirstTimeSetup()
