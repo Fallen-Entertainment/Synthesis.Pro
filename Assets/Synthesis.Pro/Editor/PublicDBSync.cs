@@ -14,6 +14,7 @@ namespace Synthesis.Editor
     {
         private const string SYNC_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/api/sync";
         private const string LAST_SYNC_KEY = "Synthesis.LastPublicSync";
+        private static readonly HttpClient httpClient = new HttpClient();
 
         [MenuItem("Tools/Synthesis/Data Management/Sync Public Knowledge", false, 33)]
         public static void SyncPublicKnowledge()
@@ -36,10 +37,10 @@ namespace Synthesis.Editor
 
             if (!confirm) return;
 
-            SyncAsync();
+            _ = SyncAsync(); // Fire and forget with proper error handling inside
         }
 
-        private static async void SyncAsync()
+        private static async Task SyncAsync()
         {
             EditorUtility.DisplayProgressBar("Syncing Knowledge", "Preparing...", 0.0f);
 
@@ -113,23 +114,20 @@ namespace Synthesis.Editor
                     }
 
                     // Upload compressed data
-                    using (var client = new HttpClient())
+                    httpClient.Timeout = System.TimeSpan.FromMinutes(2);
+
+                    var content = new ByteArrayContent(compressed.ToArray());
+                    content.Headers.Add("Content-Type", "application/gzip");
+                    content.Headers.Add("X-Synthesis-Version", GetCurrentVersion());
+
+                    var response = await httpClient.PostAsync($"{SYNC_URL}/upload", content);
+
+                    if (!response.IsSuccessStatusCode)
                     {
-                        client.Timeout = System.TimeSpan.FromMinutes(2);
-
-                        var content = new ByteArrayContent(compressed.ToArray());
-                        content.Headers.Add("Content-Type", "application/gzip");
-                        content.Headers.Add("X-Synthesis-Version", GetCurrentVersion());
-
-                        var response = await client.PostAsync($"{SYNC_URL}/upload", content);
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            throw new System.Exception($"Upload failed: {response.StatusCode}");
-                        }
-
-                        Debug.Log("[Synthesis] Public knowledge uploaded");
+                        throw new System.Exception($"Upload failed: {response.StatusCode}");
                     }
+
+                    Debug.Log("[Synthesis] Public knowledge uploaded");
                 }
             }
             catch (System.Exception e)
@@ -144,35 +142,32 @@ namespace Synthesis.Editor
             {
                 string lastSync = EditorPrefs.GetString(LAST_SYNC_KEY, "never");
 
-                using (var client = new HttpClient())
+                httpClient.Timeout = System.TimeSpan.FromMinutes(5);
+
+                // Request updates since last sync
+                var response = await httpClient.GetAsync($"{SYNC_URL}/download?since={lastSync}");
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    client.Timeout = System.TimeSpan.FromMinutes(5);
+                    throw new System.Exception($"Download failed: {response.StatusCode}");
+                }
 
-                    // Request updates since last sync
-                    var response = await client.GetAsync($"{SYNC_URL}/download?since={lastSync}");
+                // Save community knowledge to temp file
+                var compressed = await response.Content.ReadAsByteArrayAsync();
 
-                    if (!response.IsSuccessStatusCode)
+                using (var decompressed = new MemoryStream())
+                {
+                    using (var compressedStream = new MemoryStream(compressed))
+                    using (var gzip = new System.IO.Compression.GZipStream(compressedStream, System.IO.Compression.CompressionMode.Decompress))
                     {
-                        throw new System.Exception($"Download failed: {response.StatusCode}");
+                        gzip.CopyTo(decompressed);
                     }
 
-                    // Save community knowledge to temp file
-                    var compressed = await response.Content.ReadAsByteArrayAsync();
+                    // Save to temp file for merging
+                    string tempPath = dbPath + ".community";
+                    File.WriteAllBytes(tempPath, decompressed.ToArray());
 
-                    using (var decompressed = new MemoryStream())
-                    {
-                        using (var compressedStream = new MemoryStream(compressed))
-                        using (var gzip = new System.IO.Compression.GZipStream(compressedStream, System.IO.Compression.CompressionMode.Decompress))
-                        {
-                            gzip.CopyTo(decompressed);
-                        }
-
-                        // Save to temp file for merging
-                        string tempPath = dbPath + ".community";
-                        File.WriteAllBytes(tempPath, decompressed.ToArray());
-
-                        Debug.Log("[Synthesis] Community knowledge downloaded");
-                    }
+                    Debug.Log("[Synthesis] Community knowledge downloaded");
                 }
             }
             catch (System.Exception e)
@@ -196,7 +191,7 @@ namespace Synthesis.Editor
                 }
 
                 // Run Python merge script
-                string mergeScript = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "merge_public_dbs.py");
+                string mergeScript = Path.Combine(projectRoot, "Synthesis.Pro", "RAG", "merge_public_dbs.py");
 
                 if (!File.Exists(mergeScript))
                 {
@@ -204,14 +199,36 @@ namespace Synthesis.Editor
                     return;
                 }
 
+                // Use embedded Python runtime
+                string pythonExe = Path.Combine(UnityEngine.Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
+
                 var process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = "python";
+                // Use embedded Python if available, otherwise fallback to system Python
+                process.StartInfo.FileName = File.Exists(pythonExe) ? pythonExe : "python";
                 process.StartInfo.Arguments = $"\"{mergeScript}\" \"{publicDbPath}\" \"{communityDbPath}\"";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.CreateNoWindow = true;
                 process.Start();
-                process.WaitForExit();
+
+                string output = process.StandardOutput.ReadToEnd();
+
+                // Wait with timeout (60 seconds for DB merge)
+                if (!process.WaitForExit(60000))
+                {
+                    process.Kill();
+                    Debug.LogWarning("[Synthesis] Database merge timed out");
+                    return;
+                }
+
+
+                // Parse count from output (merge script prints the count)
+                // Output format: "Merged X new entries"
+                var match = System.Text.RegularExpressions.Regex.Match(output, @"Merged (\d+) new entries");
+                if (match.Success)
+                {
+                    newEntriesCount = int.Parse(match.Groups[1].Value);
+                }
 
                 // Clean up temp file
                 File.Delete(communityDbPath);
@@ -224,16 +241,16 @@ namespace Synthesis.Editor
             }
         }
 
+        private static int newEntriesCount = 0; // Set by MergeCommunityKnowledge
+
         private static int GetNewEntriesCount()
         {
-            // TODO: Query DB for entries added since last sync
-            return UnityEngine.Random.Range(10, 50); // Placeholder
+            return newEntriesCount;
         }
 
         private static string GetCurrentVersion()
         {
-            // Get from SynthesisEditorTools
-            return "1.1.0";
+            return SynthesisEditorTools.GetVersion();
         }
 
         [MenuItem("Tools/Synthesis/Data Management/View Sync Status", false, 34)]

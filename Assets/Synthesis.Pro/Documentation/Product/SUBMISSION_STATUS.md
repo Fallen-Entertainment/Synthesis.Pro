@@ -130,8 +130,10 @@ Key findings from Unity Asset Store End User License Agreement:
 - [x] Executables removed
 - [x] Download system functional
 - [x] All code in Synthesis namespace
-- [ ] Final test in clean Unity project
-- [ ] Export .unitypackage
+- [x] Runtime packages uploaded to GitHub Releases
+- [x] FirstTimeSetup tested with release URLs
+- [ ] Final test in clean Unity project (do this after Phase 3)
+- [ ] Export .unitypackage for submission
 - [ ] Upload to Asset Store
 - [ ] Submit with cover letter
 

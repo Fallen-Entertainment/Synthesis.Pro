@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using Synthesis.Bridge;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Synthesis.Editor
@@ -115,36 +116,42 @@ namespace Synthesis.Editor
 
         private const string CURRENT_VERSION = "1.1.0-beta";
         private const string UPDATE_CHECK_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/version.json";
+        private static readonly HttpClient httpClient = new HttpClient();
+
+        /// <summary>
+        /// Get the current version of Synthesis.Pro
+        /// </summary>
+        public static string GetVersion()
+        {
+            return CURRENT_VERSION;
+        }
 
         [MenuItem(MenuRoot + "Check for Updates", false, 10)]
         public static void CheckForUpdates()
         {
-            CheckForUpdatesAsync();
+            _ = CheckForUpdatesAsync(); // Fire and forget with proper error handling inside
         }
 
-        private static async void CheckForUpdatesAsync()
+        private static async Task CheckForUpdatesAsync()
         {
             try
             {
                 Debug.Log("[Synthesis] Checking for updates...");
 
-                using (var client = new System.Net.Http.HttpClient())
+                httpClient.Timeout = System.TimeSpan.FromSeconds(10);
+                var response = await httpClient.GetStringAsync(UPDATE_CHECK_URL);
+
+                // Parse JSON response
+                // Expected format: {"version":"1.2.0","url":"https://...","notes":"What's new..."}
+                var versionData = ParseVersionJson(response);
+
+                if (versionData != null)
                 {
-                    client.Timeout = System.TimeSpan.FromSeconds(10);
-                    var response = await client.GetStringAsync(UPDATE_CHECK_URL);
-
-                    // Parse JSON response
-                    // Expected format: {"version":"1.2.0","url":"https://...","notes":"What's new..."}
-                    var versionData = ParseVersionJson(response);
-
-                    if (versionData != null)
-                    {
-                        CompareVersions(versionData);
-                    }
-                    else
-                    {
-                        ShowUpdateError("Failed to parse version data");
-                    }
+                    CompareVersions(versionData);
+                }
+                else
+                {
+                    ShowUpdateError("Failed to parse version data");
                 }
             }
             catch (System.Net.Http.HttpRequestException e)
@@ -242,6 +249,13 @@ namespace Synthesis.Editor
         {
             try
             {
+                // Strip any suffixes like "-beta", "-alpha", etc.
+                latest = System.Text.RegularExpressions.Regex.Match(latest, @"^\d+\.\d+\.\d+").Value;
+                current = System.Text.RegularExpressions.Regex.Match(current, @"^\d+\.\d+\.\d+").Value;
+
+                if (string.IsNullOrEmpty(latest) || string.IsNullOrEmpty(current))
+                    return false;
+
                 var latestParts = latest.Split('.');
                 var currentParts = current.Split('.');
 

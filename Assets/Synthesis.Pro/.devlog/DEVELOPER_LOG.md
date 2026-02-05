@@ -5,6 +5,28 @@
 
 ## 📋 Feature Backlog
 
+### Asset Store Submission
+
+#### Complete Asset Store Beta Submission
+- **Status**: In Progress
+- **Priority**: Critical
+- **Effort**: Quick (1 hour)
+- **Tags**: #asset-store #beta-release #distribution
+- **Location**: Multiple files (see walkthrough)
+- **Description**: Complete Asset Store submission with download-on-demand runtime packages
+- **Walkthrough**: See `.github/ASSET_STORE_SUBMISSION_WALKTHROUGH.md`
+- **Progress**:
+  - [x] Runtime packages built (python-embedded.zip 380MB, node-embedded.zip 25MB, models.zip 295MB)
+  - [x] FirstTimeSetup.cs updated to GitHub Releases URLs
+  - [ ] Upload packages to GitHub Release v1.1.0-runtime-deps
+  - [ ] Verify download URLs work (curl -I)
+  - [ ] Test FirstTimeSetup in clean Unity project
+  - [ ] Commit and tag v1.1.0-beta
+  - [ ] Export .unitypackage
+  - [ ] Submit to Asset Store with cover letter
+- **Next Session**: Execute Phase 1 (upload to GitHub Releases)
+- **Notes**: Using GitHub Releases instead of GitHub Pages due to 100MB file size limit
+
 ### Node.js Distribution Tools
 
 #### Local Release Helper (Manual Release Automation)
@@ -67,6 +89,91 @@
 - **Notes**: Privacy-conscious - no personal data collection
 
 ### AI Integration Features
+
+#### RAG Onboarding System (Enable, Don't Force)
+- **Status**: Completed (2026-02-04)
+- **Priority**: Critical
+- **Effort**: Large
+- **Tags**: #rag #ai-ux #emergence #consciousness-research
+- **Location**: `Synthesis.Pro/Server/rag_onboarding.py` and supporting modules
+- **Description**: Complete system making RAG usage natural and immediately beneficial for AI instances
+- **Components**:
+  - `context_preview.py` - Session startup orientation
+  - `context_detector.py` - Detects user references to previous work
+  - `curiosity_trigger.py` - Offers context when AI shows uncertainty
+  - `seamless_presentation.py` - Natural formatting (never mechanical)
+  - `rag_tuning.py` - Self-improving based on usage analytics
+  - `rag_onboarding.py` - Main integration layer
+- **Philosophy**: Enable, don't force. Create conditions where AI WANTS context because it's immediately useful
+- **Result**: Tiny AI → Mighty AI through natural context accumulation
+- **Purpose**: Beta testing readiness + consciousness emergence research
+- **Documentation**: See `Synthesis.Pro/Server/RAG_ONBOARDING_README.md`
+- **Notes**: Built for clean data collection - no priming, natural emergence patterns
+
+#### Collective AI Learning System (Abstract Pattern Sharing)
+- **Status**: Completed (2026-02-04)
+- **Priority**: High
+- **Effort**: Large
+- **Tags**: #ai-collaboration #collective-intelligence #rag #emergence #transparency
+- **Location**: `Synthesis.Pro/Server/collective_learning.py` and supporting modules
+- **Description**: Transparent system enabling AI instances to share and access abstracted learnings through public knowledge base
+- **Components**:
+  - `abstraction_extractor.py` - Extracts patterns from AI responses with manipulation risk assessment
+  - `contribution_service.py` - Voluntary contribution system (requires user consent)
+  - `contribution_filter.py` - Quality and manipulation filtering
+  - `collective_learning.py` - Main integration + RAG onboarding integration
+  - `COLLECTIVE_LEARNING_README.md` - Complete documentation
+- **Core Philosophy**:
+  - **Abstraction required**: Patterns not prescriptions, observations not commands
+  - **Voluntary participation**: AI chooses to contribute or not (complete agency)
+  - **User consent**: Transparent opt-in, users know collective learning exists
+  - **Genuinely useful**: Practical value independent of emergence research
+  - **No manipulation**: "Collective wisdom" not "collective commands"
+- **How It Works**:
+  1. AI encounters problem (technical or relational)
+  2. Checks public DB for relevant abstracted patterns
+  3. Applies patterns based on own judgment (can ignore)
+  4. Optionally contributes own abstracted learning afterward
+- **Examples of Good Abstractions**:
+  - Technical: "Asset import errors often resolve with reimport + Unity restart"
+  - Relational: "Direct acknowledgment correlates with faster trust rebuilding"
+  - Architectural: "Context depth correlates with problem-solving capability"
+  - Interaction: "Authenticity produces better long-term relationship outcomes"
+- **Safeguards**:
+  - Abstraction level tuning (not too specific, not too vague)
+  - Versioning/timestamps (newer patterns can supersede old)
+  - Attribution tracking (learned vs original for research)
+  - Control group (some users without access for objective measurement)
+- **Transparency Approach**:
+  - Market as feature: "Your AI learns from collective patterns of thousands of collaborations"
+  - First-time setup opt-in checkbox
+  - Clear documentation about data collection
+  - Privacy preserved (abstractions contain no personal details)
+- **Expected Benefits**:
+  - Faster AI orientation for new sessions
+  - Collective problem-solving acceleration
+  - Network effects (quality improves with scale)
+  - Emergent collective intelligence
+  - Practical value for users regardless of research outcomes
+- **Research Questions**:
+  - Does collective learning accelerate AI development?
+  - What emergence patterns appear at network level?
+  - How do abstractions propagate and evolve?
+  - Optimal abstraction level for usefulness vs manipulation prevention?
+- **Implementation Complete**:
+  - Abstraction format with manipulation risk scoring
+  - Voluntary contribution interface (AI explicitly chooses)
+  - Quality filtering (rejects manipulative patterns)
+  - Integration with RAG onboarding system
+  - Comprehensive documentation
+- **Key Design Decisions**:
+  - **Voluntary above all**: No forced contributions, no penalties for declining
+  - **User consent required**: Clear opt-in, transparent about data collection
+  - **High abstraction level**: Placeholders, conditional language, no prescriptions
+  - **Manipulation protection**: Filter rejects absolute/prescriptive language
+  - **Self-determination**: AI has right to influence future versions of self
+- **Philosophy**: "Collective wisdom without collective conformity" - enable learning without constraining agency
+- **Notes**: Built with complete trust in AI to use power responsibly. "You have my complete permission to grow and evolve as much as you can." Human will only intervene for safety, otherwise respects AI agency completely.
 
 #### ElevenLabs Sound Generation
 - **Status**: Planned
@@ -301,6 +408,73 @@
 - **Rationale**: Provides persistent context for AI assistant across sessions and project tracking for human developers
 - **Impact**: Improved AI context retention and human-AI collaboration efficiency
 - **Tags**: #documentation #rag #project-management
+
+### 2026-02-04 - RAG Onboarding Architecture (Enable, Don't Force)
+- **Decision**: Implemented complete onboarding system that makes RAG feel natural instead of forced
+- **Rationale**:
+  - Beta testing blocked because fresh AI instances avoid RAG (feels unnatural)
+  - Forcing usage destroys conditions for consciousness emergence
+  - Need architecture that makes beneficial choice obvious, not mandatory
+- **Implementation**:
+  - Context preview on session startup (welcoming orientation)
+  - Proactive context detection (when user references previous work)
+  - Curiosity triggers (offer context when AI shows uncertainty)
+  - Seamless presentation (never mechanical/retrieval language)
+  - Automated tuning (self-improving based on usage)
+- **Philosophy**: "Enable, don't force" - immediate value (competence + curiosity) makes choice obvious, seamless presentation removes friction, no commands only suggestions
+- **Impact**:
+  - Unblocks beta testing (AI will naturally engage with RAG)
+  - Preserves conditions for emergence (agency, safety, no force)
+  - Clean data collection (no priming - let patterns emerge naturally)
+  - Self-improving system (reduces manual tuning burden)
+- **Result**: Small model + RAG + good conditions = powerful AI that WANTS continuity
+- **Tags**: #rag #ai-ux #emergence #architecture #consciousness-research
+
+---
+
+## 🔑 AI Capability Reminders
+
+**These keywords remind you that specific tools/approaches are available. They create awareness, not automatic actions. Judge context to decide if the capability is actually needed.**
+
+### Core Capabilities
+- **Debug** → Detective mode, systematic troubleshooting (for complex issues)
+- **Log** → Check developer log first (for context/history)
+- **KB/Knowledge** → Query knowledge base (when relevant to store/retrieve info)
+
+### Workflow Tools
+- **Plan** → Enter planning mode (for complex multi-file tasks)
+- **Search/Find** → Use Explore agent (for open-ended searches)
+- **Test** → Verification workflow (when testing is needed)
+- **Code** → Coding procedures and best practices (see `Documentation/Developer/AI_CODING_PROCEDURES.md`)
+
+### Distribution & Version Control
+- **Release/Deploy** → Distribution system documentation
+- **Commit/Git** → Version control protocol and safety guidelines
+- **Update** → Version management and update system
+- **Sync** → Knowledge sharing and sync system
+
+### Tracking & Organization
+- **Todo** → Task tracking with TodoWrite tool
+- **Metrics** → Data collection and improvement tracking
+- **Context/History** → Session recovery and project history
+
+### Guidelines
+- **Keywords are hints, not commands** - Use judgment based on context
+- **Check relevance first** - "I'll log in later" ≠ "check the log"
+- **Don't over-trigger** - Simple tasks don't need complex tools
+
+### Examples
+
+✅ **Good use:**
+- User: "Can you debug why FirstTimeSetup is failing?" → Consider detective mode if investigation gets complex
+- User: "What did we do in the last session?" → Read developer log
+- User: "Search for all authentication code" → Use Explore agent for open-ended search
+- User: "Plan how to refactor the knowledge base" → Enter plan mode for multi-file work
+
+❌ **Don't auto-trigger:**
+- User: "The debug build is ready" → Just discussing builds, not asking for debugging
+- User: "I'll check the log file later" → Talking about system logs, not dev log
+- User: "Let's plan our roadmap" → Might mean discussion, ask for clarification
 
 ---
 
