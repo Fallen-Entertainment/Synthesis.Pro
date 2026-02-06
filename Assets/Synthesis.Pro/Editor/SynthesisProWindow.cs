@@ -249,12 +249,14 @@ namespace Synthesis.Editor
             // Validation Stats
             if (stats.ValidationStats != null)
             {
+                int total = stats.ValidationStats.TotalValidated + stats.ValidationStats.TotalRejected;
+                float successRate = total > 0 ? (float)stats.ValidationStats.TotalValidated / total : 0f;
+
                 DrawStatSection("Validation", new Dictionary<string, string>
                 {
                     { "Total Validated", stats.ValidationStats.TotalValidated.ToString() },
-                    { "Passed", stats.ValidationStats.Passed.ToString() },
-                    { "Failed", stats.ValidationStats.Failed.ToString() },
-                    { "Success Rate", $"{stats.ValidationStats.SuccessRate:P1}" }
+                    { "Total Rejected", stats.ValidationStats.TotalRejected.ToString() },
+                    { "Success Rate", $"{successRate:P1}" }
                 });
             }
 

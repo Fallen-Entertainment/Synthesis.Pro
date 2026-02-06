@@ -568,17 +568,17 @@ namespace Synthesis.Bridge
 
         private void Log(string message)
         {
-            Debug.Log($"[SynthesisManager] {message}");
+            UnityEngine.Debug.Log($"[SynthesisManager] {message}");
         }
 
         private void LogWarning(string message)
         {
-            Debug.LogWarning($"[SynthesisManager] {message}");
+            UnityEngine.Debug.LogWarning($"[SynthesisManager] {message}");
         }
 
         private void LogError(string message)
         {
-            Debug.LogError($"[SynthesisManager] {message}");
+            UnityEngine.Debug.LogError($"[SynthesisManager] {message}");
         }
 
         #endregion

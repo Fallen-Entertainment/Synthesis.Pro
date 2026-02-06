@@ -24,6 +24,9 @@ namespace Synthesis.Editor
             // CRITICAL: Ensure Newtonsoft.Json is installed FIRST before anything else
             EditorApplication.delayCall += EnsureNewtonsoftJson;
 
+            // Auto-fix any incorrect paths from previous versions
+            EditorApplication.delayCall += ValidateAndFixPaths;
+
             // Check if setup already completed
             if (EditorPrefs.GetBool(SETUP_COMPLETE_KEY, false))
             {
@@ -86,6 +89,69 @@ namespace Synthesis.Editor
             catch (System.Exception e)
             {
                 Debug.LogError($"[Synthesis] Failed to add Newtonsoft.Json: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Validates and automatically fixes incorrect file paths from previous versions
+        /// Prevents users and AIs from dealing with path migration issues
+        /// </summary>
+        private static void ValidateAndFixPaths()
+        {
+            try
+            {
+                string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
+                string serverDir = Path.Combine(packageRoot, "Server");
+                bool fixedAnything = false;
+
+                // Fix Python in wrong location (KnowledgeBase instead of Server)
+                string wrongPythonPath = Path.Combine(packageRoot, "KnowledgeBase", "python");
+                string correctPythonPath = Path.Combine(serverDir, "python");
+                if (Directory.Exists(wrongPythonPath) && !Directory.Exists(correctPythonPath))
+                {
+                    Debug.Log("[Synthesis] Migrating Python to correct location...");
+                    Directory.Move(wrongPythonPath, correctPythonPath);
+                    fixedAnything = true;
+                }
+
+                // Fix databases in wrong location (project root instead of Server)
+                string[] dbFiles = { "synthesis_private.db", "synthesis_knowledge.db", "synthesis_public.db" };
+                string projectRoot = Path.GetDirectoryName(Application.dataPath);
+                foreach (string dbFile in dbFiles)
+                {
+                    string wrongDbPath = Path.Combine(projectRoot, dbFile);
+                    string correctDbPath = Path.Combine(serverDir, dbFile);
+                    if (File.Exists(wrongDbPath) && !File.Exists(correctDbPath))
+                    {
+                        Debug.Log($"[Synthesis] Migrating {dbFile} to correct location...");
+                        File.Move(wrongDbPath, correctDbPath);
+                        fixedAnything = true;
+                    }
+                }
+
+                // Fix node/models in wrong locations if they somehow ended up elsewhere
+                string[] runtimeFolders = { "node", "models" };
+                foreach (string folder in runtimeFolders)
+                {
+                    string wrongPath = Path.Combine(projectRoot, folder);
+                    string correctPath = Path.Combine(serverDir, folder);
+                    if (Directory.Exists(wrongPath) && !Directory.Exists(correctPath))
+                    {
+                        Debug.Log($"[Synthesis] Migrating {folder} to correct location...");
+                        Directory.Move(wrongPath, correctPath);
+                        fixedAnything = true;
+                    }
+                }
+
+                if (fixedAnything)
+                {
+                    AssetDatabase.Refresh();
+                    Debug.Log("[Synthesis] ✅ Path migrations complete - all files in correct locations");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Synthesis] Path validation warning: {e.Message}");
             }
         }
 
@@ -217,7 +283,7 @@ namespace Synthesis.Editor
                 }
 
                 // Run init script with embedded Python
-                string pythonExe = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
+                string pythonExe = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python", "python.exe");
 
                 var process = new System.Diagnostics.Process();
                 // Use embedded Python if available, otherwise fallback to system Python
@@ -323,7 +389,7 @@ namespace Synthesis.Editor
 
         private static async Task DownloadPythonRuntime()
         {
-            string targetDir = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python");
+            string targetDir = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python");
 
             if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir, "python.exe").Length > 0)
             {

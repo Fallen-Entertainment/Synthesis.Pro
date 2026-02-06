@@ -38,16 +38,16 @@ namespace Synthesis.Editor
 
             string message = "Synthesis.Pro Server Status:\n\n";
             message += (wsRunning ? "[OK]" : "[ERROR]") + $" WebSocket Server (port {wsPort})\n\n";
-            
-            if (httpRunning && wsRunning)
+
+            if (wsRunning)
             {
                 message += "All systems operational! ✅\n\n" +
                           "You can now use MCP commands from Cursor.";
             }
             else
             {
-                message += "One or more servers not running! ❌\n\n" +
-                          "Try: Synthesis → Restart MCP Servers";
+                message += "Server not running! ❌\n\n" +
+                          "Try: Synthesis → Restart WebSocket Server";
             }
             
             EditorUtility.DisplayDialog("MCP Server Status", message, "OK");

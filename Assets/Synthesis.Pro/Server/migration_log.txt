@@ -1,0 +1,349 @@
+============================================================
+Synthesis.Pro Database Migration
+============================================================
+
+INSPECTION PHASE
+============================================================
+
+============================================================
+Inspecting: D:\Unity Projects\Synthesis.Pro\Assets\Synthesis_AI\KnowledgeBase\nightblade.db
+Size: 8.61 MB
+============================================================
+
+Tables: 23
+  - documents: 99 rows
+    Columns: id, filename, title, category, full_path, content, last_updated, word_count, created_at
+    Sample rows:
+      1. (83, 'AI_EXPERT_TRANSFORMATION_COMPLETE.md', '? AI EXPERT TRANSFORMATION - COMPLETE ?', 'General', '...
+      2. (84, 'AI_KB_INTEGRATION_COMPLETE.md', '? AI Knowledge Base Integration - COMPLETE', 'General', 'AI_K...
+      3. (85, 'BUG_HUNT_REPORT.md', '? BUG HUNT REPORT - NightBlade MMO', 'Performance', 'BUG_HUNT_REPORT.md'...
+  - sqlite_sequence: 7 rows
+    Columns: name, seq
+    Sample rows:
+      1. ('documents', 217)...
+      2. ('sections', 9490)...
+      3. ('code_examples', 3076)...
+  - sections: 9490 rows
+    Columns: id, document_id, heading, level, content, section_order
+    Sample rows:
+      1. (1, 1, '? AI Knowledge Base Integration - COMPLETE', 1, '', 0)...
+      2. (2, 1, '? The Final Piece: AI Self-Query', 2, '**You asked:** "How do I become a complete expert on ...
+      3. (3, 1, '? The Complete Loop', 2, '', 2)...
+  - code_examples: 3076 rows
+    Columns: id, document_id, section_id, language, code, description, line_number
+    Sample rows:
+      1. (1, 1, None, 'text', 'User: "What port does Central Server use?"\nAI: "Hmm... I think it\'s 6000... ...
+      2. (2, 1, None, 'text', 'User: "What port does Central Server use?"\n\nAI: "Let me check the Knowledge ...
+      3. (3, 1, None, 'bash', '# General search\nShell: python nightblade_kb.py query "search term"\nWorking ...
+  - api_references: 0 rows
+    Columns: id, document_id, class_name, method_name, property_name, description, parameters, return_type, example_usage
+  - troubleshooting: 62 rows
+    Columns: id, document_id, symptom, cause, solution, severity, tags
+    Sample rows:
+      1. (1, 31, 'Servers fail to start due to missing network managers\n**Causes:**\n- Network manager compo...
+      2. (2, 31, 'Secure WebSocket connections fail\n**Causes:**\n- Invalid certificate file path\n- Incorrec...
+      3. (3, 31, 'Database operations fail\n**Causes:**\n- Incorrect database configuration\n- Network connec...
+  - architecture: 0 rows
+    Columns: id, document_id, concept_name, description, diagram, related_systems
+  - configurations: 684 rows
+    Columns: id, document_id, setting_name, setting_type, default_value, description, example, related_to
+    Sample rows:
+      1. (1, 1, 'monitor', 'var', None, 'Example usage:', None, None)...
+      2. (2, 1, 'metrics', 'var', None, 'monitor.StartMonitoring();', None, None)...
+      3. (3, 2, 'false', 'return', None, 'result = 0;', None, None)...
+  - tags: 6 rows
+    Columns: id, name, category, usage_count
+    Sample rows:
+      1. (1, 'compilation-error', 'troubleshooting', 2)...
+      2. (2, 'assembly-reference', 'build-system', 2)...
+      3. (3, 'zstring', 'libraries', 2)...
+  - document_tags: 6 rows
+    Columns: document_id, tag_id
+    Sample rows:
+      1. (167, 1)...
+      2. (167, 2)...
+      3. (167, 3)...
+  - changelog: 0 rows
+    Columns: id, version, release_date, entry_type, title, description, related_documents, created_at
+  - quick_reference: 0 rows
+    Columns: id, category, title, command, description, example, related_doc_id
+  - documents_fts: 99 rows
+    Columns: filename, title, content, category
+    Sample rows:
+      1. ('AI_EXPERT_TRANSFORMATION_COMPLETE.md', '? AI EXPERT TRANSFORMATION - COMPLETE ?', '# ? AI EXPERT T...
+      2. ('AI_KB_INTEGRATION_COMPLETE.md', '? AI Knowledge Base Integration - COMPLETE', '# ? AI Knowledge Ba...
+      3. ('BUG_HUNT_REPORT.md', '? BUG HUNT REPORT - NightBlade MMO', '# ? BUG HUNT REPORT - NightBlade MMO\n...
+  - documents_fts_data: 264 rows
+    Columns: id, block
+    Sample rows:
+      1. (1, b'\x81X\x86?\x87n\x91\xbez\x82#')...
+      2. (10, b'\x00\x00\x00\x00\x03\r\x83p\x00\x07\x04\x01\x01\x05\x01\x01\x06\x01\x03\x07\x01\x04\x08\x01\x...
+      3. (137438953473, b'\x00\x00\x0f\x86\x0200\x02\x12\x01\x02;\n\x82Z\x85A\x0c\x018\x01\x02\x1b\x03\x0f\x0...
+  - documents_fts_idx: 262 rows
+    Columns: segid, term, pgno
+    Sample rows:
+      1. (1, b'', 2)...
+      2. (1, b'01500', 4)...
+      3. (1, b'030', 6)...
+  - documents_fts_docsize: 216 rows
+    Columns: id, sz
+    Sample rows:
+      1. (1, b'\x05\x05\x8a~\x01')...
+      2. (2, b'\x04\x05\x8c=\x01')...
+      3. (3, b'\x02\x01\x92N\x01')...
+  - documents_fts_config: 1 rows
+    Columns: k, v
+    Sample rows:
+      1. ('version', 4)...
+  - sections_fts: 9490 rows
+    Columns: heading, content
+    Sample rows:
+      1. ('? AI Knowledge Base Integration - COMPLETE', '')...
+      2. ('? The Final Piece: AI Self-Query', '**You asked:** "How do I become a complete expert on NightBlad...
+      3. ('? The Complete Loop', '')...
+  - sections_fts_data: 317 rows
+    Columns: id, block
+    Sample rows:
+      1. (1, b'\xca\x12\x81\xdc\x02\x8f\xdf\x16')...
+      2. (10, b'\x00\x00\x00\x00\x06\x07\xca\x12\x00\x05\x13\x01\x01\x02\x01\x01\x03\x01\x01\x04\x01\x01\x06\...
+      3. (137438953473, b'\x00\x00\x0f\xc7\x0200\xbc\x01\x06\x01\x01\x15\x07\x06\x01\x01&\x01\x06\x01\x01\t\x...
+  - sections_fts_idx: 308 rows
+    Columns: segid, term, pgno
+    Sample rows:
+      1. (1, b'', 2)...
+      2. (1, b'010', 4)...
+      3. (1, b'020', 6)...
+  - sections_fts_docsize: 9490 rows
+    Columns: id, sz
+    Sample rows:
+      1. (1, b'\x05\x00')...
+      2. (2, b'\x06\x1b')...
+      3. (3, b'\x03\x00')...
+  - sections_fts_config: 1 rows
+    Columns: k, v
+    Sample rows:
+      1. ('version', 4)...
+  - ai_conversations: 1 rows
+    Columns: id, user_message, ai_response, timestamp, source
+    Sample rows:
+      1. (1, 'What is our AI team structure and why RAG?', 'Our AI development team structure:\n\n**Partners ...
+
+============================================================
+Inspecting: D:\Unity Projects\Synthesis.Pro\Assets\Synthesis_AI\KnowledgeBase\nightblade_kb.db
+Size: 0.14 MB
+============================================================
+
+Tables: 22
+  - documents: 1 rows
+    Columns: id, filename, title, category, full_path, content, last_updated, word_count, created_at
+    Sample rows:
+      1. (1, 'web_chat_troubleshooting.md', 'Web Chat and Package Troubleshooting', 'troubleshooting', 'docs/...
+  - sqlite_sequence: 5 rows
+    Columns: name, seq
+    Sample rows:
+      1. ('documents', 1)...
+      2. ('troubleshooting', 2)...
+      3. ('configurations', 1)...
+  - sections: 0 rows
+    Columns: id, document_id, heading, level, content, section_order
+  - code_examples: 0 rows
+    Columns: id, document_id, section_id, language, code, description, line_number
+  - api_references: 0 rows
+    Columns: id, document_id, class_name, method_name, property_name, description, parameters, return_type, example_usage
+  - troubleshooting: 2 rows
+    Columns: id, document_id, symptom, cause, solution, severity, tags
+    Sample rows:
+      1. (1, 1, 'GUID conflicts for 68 UniTask files - Packages/com.cysharp.unitask vs Assets/.../Plugins/Uni...
+      2. (2, 1, '[UWB]: The engine process could not be found! FileNotFoundException', "Package is referenced...
+  - architecture: 0 rows
+    Columns: id, document_id, concept_name, description, diagram, related_systems
+  - configurations: 1 rows
+    Columns: id, document_id, setting_name, setting_type, default_value, description, example, related_to
+    Sample rows:
+      1. (1, 1, 'WebBrowserUIFull Component', 'ScriptableObject', 'CEF Engine, TCP Communication, Input Syste...
+  - tags: 7 rows
+    Columns: id, name, category, usage_count
+    Sample rows:
+      1. (1, 'unitask', 'package', 1)...
+      2. (2, 'guid-conflict', 'troubleshooting', 1)...
+      3. (3, 'unitywebbrowser', 'package', 1)...
+  - document_tags: 7 rows
+    Columns: document_id, tag_id
+    Sample rows:
+      1. (1, 1)...
+      2. (1, 2)...
+      3. (1, 3)...
+  - changelog: 0 rows
+    Columns: id, version, release_date, entry_type, title, description, related_documents, created_at
+  - quick_reference: 5 rows
+    Columns: id, category, title, command, description, example, related_doc_id
+    Sample rows:
+      1. (1, 'Web Chat', 'Open Web Chat', 'Unity Menu ? Synthesis ? Open Web Chat', 'Opens browser-based mode...
+      2. (2, 'Web Chat', 'Open Legacy Chat', 'Unity Menu ? Synthesis ? Open Legacy Chat Window', 'Opens IMGUI...
+      3. (3, 'Web Chat', 'Restart MCP Servers', 'Unity Menu ? Synthesis ? Restart MCP Servers', 'Manually res...
+  - documents_fts: 1 rows
+    Columns: filename, title, content, category
+    Sample rows:
+      1. ('web_chat_troubleshooting.md', 'Web Chat and Package Troubleshooting', '# Web Chat and Package Trou...
+  - documents_fts_data: 3 rows
+    Columns: id, block
+    Sample rows:
+      1. (1, b'\x01\x04\x054\x01')...
+      2. (10, b'\x00\x00\x00\x00\x01\x01\x01\x00\x01\x01\x01\x01')...
+      3. (137438953473, b'\x00\x00\x01\xcb\x03068\x01\x06\x01\x02\x16\x01\x03and\x01\x12\x01\x01\x04\x01\x02\...
+  - documents_fts_idx: 1 rows
+    Columns: segid, term, pgno
+    Sample rows:
+      1. (1, b'', 2)...
+  - documents_fts_docsize: 1 rows
+    Columns: id, sz
+    Sample rows:
+      1. (1, b'\x04\x054\x01')...
+  - documents_fts_config: 1 rows
+    Columns: k, v
+    Sample rows:
+      1. ('version', 4)...
+  - sections_fts: 0 rows
+    Columns: heading, content
+  - sections_fts_data: 2 rows
+    Columns: id, block
+    Sample rows:
+      1. (1, b'')...
+      2. (10, b'\x00\x00\x00\x00\x00\x00\x00')...
+  - sections_fts_idx: 0 rows
+    Columns: segid, term, pgno
+  - sections_fts_docsize: 0 rows
+    Columns: id, sz
+  - sections_fts_config: 1 rows
+    Columns: k, v
+    Sample rows:
+      1. ('version', 4)...
+
+Auto-confirmed: Proceeding with migration
+
+Initializing Synthesis.Pro RAG Engine
+   Public DB: D:\Unity Projects\Synthesis.Pro\Synthesis.Pro\Server\synthesis_knowledge.db
+   Private DB: D:\Unity Projects\Synthesis.Pro\Synthesis.Pro\Server\synthesis_private.db
+
+MIGRATION PHASE
+
+============================================================
+Migrating: D:\Unity Projects\Synthesis.Pro\Assets\Synthesis_AI\KnowledgeBase\nightblade_kb.db
+Mode: LIVE
+============================================================
+
+Processing table: documents
+  [PRIVATE] # Web Chat and Package Troubleshooting Guide
+
+Complete troubleshooting guide for NightBlade web chat...
+
+Processing table: sqlite_sequence
+  Skipping system table
+
+Processing table: sections
+
+Processing table: code_examples
+
+Processing table: api_references
+
+Processing table: troubleshooting
+  [PUBLIC] 1 1 GUID conflicts for 68 UniTask files - Packages/com.cysharp.unitask vs Assets/.../Plugins/UniTask...
+WARNING: Adding to PUBLIC database!
+   Make sure this content is safe to share!
+  [PRIVATE] 2 1 [UWB]: The engine process could not be found! FileNotFoundException Package is referenced in man...
+
+Processing table: architecture
+
+Processing table: configurations
+  [PRIVATE] Required configuration for web chat browser component.
+
+WebBrowserUIFull must have these ScriptableO...
+
+Processing table: tags
+  [PRIVATE] 1 unitask package 1...
+WARNING: Adding to PUBLIC database!
+   Make sure this content is safe to share!
+
+Processing table: document_tags
+
+Processing table: changelog
+
+Processing table: quick_reference
+
+Processing table: documents_fts
+
+Processing table: documents_fts_data
+
+Processing table: documents_fts_idx
+
+Processing table: documents_fts_docsize
+
+Processing table: documents_fts_config
+
+Processing table: sections_fts
+
+Processing table: sections_fts_data
+
+Processing table: sections_fts_idx
+
+Processing table: sections_fts_docsize
+
+Processing table: sections_fts_config
+
+============================================================
+Migration Stats:
+  Total rows: 33
+  -> Public: 0
+  -> Private: 0
+  Skipped: 33
+============================================================
+
+============================================================
+Migrating: D:\Unity Projects\Synthesis.Pro\Assets\Synthesis_AI\KnowledgeBase\nightblade.db
+Mode: LIVE
+============================================================
+
+Processing table: documents
+  [PRIVATE] # ? AI EXPERT TRANSFORMATION - COMPLETE ?
+
+## The Journey to True NightBlade Expertise
+
+**Date:** Ja...
+  [PRIVATE] # ? AI Knowledge Base Integration - COMPLETE
+
+## ? The Final Piece: AI Self-Query
+
+**You asked:** "H...
+  [PRIVATE] # ? BUG HUNT REPORT - NightBlade MMO
+**Date:** 2026-01-28  
+**Status:** Comprehensive code quality a...
+  [PRIVATE] # Changelog
+
+All notable changes to NightBlade will be documented in this file.
+
+The format is based...
+  [PRIVATE] # ? Unity Bridge - COMMERCIAL PACKAGE READY!
+
+**Status:** ? **READY TO SELL**  
+**Version:** 1.0.0 C...
+WARNING: Adding to PUBLIC database!
+   Make sure this content is safe to share!
+WARNING: Adding to PUBLIC database!
+   Make sure this content is safe to share!
+Traceback (most recent call last):
+  File "D:\Unity Projects\Synthesis.Pro\Synthesis.Pro\Server\migrate_databases.py", line 339, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "D:\Unity Projects\Synthesis.Pro\Synthesis.Pro\Server\migrate_databases.py", line 314, in main
+    stats = migrate_database(str(nightblade_db), rag, dry_run)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity Projects\Synthesis.Pro\Synthesis.Pro\Server\migrate_databases.py", line 212, in migrate_database
+    success = rag.add_text(text_content, private=not is_public)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity Projects\Synthesis.Pro\Synthesis.Pro\RAG\rag_engine.py", line 134, in add_text
+    result = subprocess.run(
+             ^^^^^^^^^^^^^^^
+  File "subprocess.py", line 548, in run
+  File "subprocess.py", line 1026, in __init__
+  File "subprocess.py", line 1538, in _execute_child
+FileNotFoundError: [WinError 206] The filename or extension is too long
