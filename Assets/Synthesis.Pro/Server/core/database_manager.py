@@ -24,7 +24,11 @@ import urllib.error
 GITHUB_REPO = "Fallen-Entertainment/Synthesis.Pro"
 RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 PUBLIC_DB_NAME = "synthesis_knowledge.db"
-MODEL_FILE_NAME = "embeddinggemma-300M-Q8_0.gguf"
+
+# DEPRECATED: Old model file - no longer used with lightweight stack
+# Lightweight stack uses sentence-transformers/all-MiniLM-L6-v2 which auto-downloads
+MODEL_FILE_NAME = "embeddinggemma-300M-Q8_0.gguf"  # NOT USED - kept for compatibility only
+
 VERSION_FILE = "db_version.json"
 
 
@@ -274,10 +278,15 @@ class DatabaseManager:
         """
         Check if embeddings model is set up
 
+        NOTE: DEPRECATED - Lightweight stack (BM25S + sentence-transformers) auto-downloads models.
+        Always returns True to maintain compatibility with websocket_server.py.
+        Models are cached automatically by sentence-transformers at Server/models/
+
         Returns:
-            True if model exists, False otherwise
+            True (always - models handled automatically)
         """
-        return self.model_path.exists()
+        # Models auto-download via sentence-transformers - no manual setup needed
+        return True
 
     def setup_database(self, force: bool = False) -> bool:
         """
@@ -329,23 +338,25 @@ class DatabaseManager:
         """
         Ensure embeddings model is set up (download if needed)
 
+        NOTE: DEPRECATED - Lightweight stack (BM25S + sentence-transformers) auto-downloads models.
+        No manual model setup needed. This method is a no-op for backwards compatibility.
+
+        Architecture change: sentence-transformers/all-MiniLM-L6-v2 (~80MB) downloads automatically
+        on first use and caches to Server/models/. Old embeddinggemma model no longer used.
+
         Args:
-            force: Force download even if model exists
+            force: Ignored (kept for compatibility)
 
         Returns:
-            True if setup successful, False otherwise
+            True (always - models handled automatically)
         """
-        if self.check_model_setup() and not force:
-            print(f"Embeddings model already exists: {self.model_path.name}")
-            if self.version_info.get('model'):
-                model_info = self.version_info['model']
-                print(f"  Version: {model_info.get('version', 'unknown')}")
-                print(f"  Size: {model_info.get('size', 0) / 1024 / 1024:.2f} MB")
-            return True
+        print("[Synthesis] Model setup: Using sentence-transformers (auto-downloads on first use)")
+        return True
 
-        print("\n" + "=" * 60)
-        print("Synthesis.Pro - Embeddings Model Setup")
-        print("=" * 60)
+        # OLD CODE BELOW - KEPT FOR REFERENCE BUT NOT EXECUTED
+        # ---------------------------------------------------
+        # This code tried to download embeddinggemma-300M-Q8_0.gguf from GitHub releases
+        # No longer needed with lightweight stack architecture
 
         # Fetch latest release
         release_data = self._fetch_latest_release_info()

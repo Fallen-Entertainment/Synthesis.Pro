@@ -266,7 +266,7 @@ namespace Synthesis.Editor
                 string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
                 string serverDir = Path.Combine(packageRoot, "Server");
                 string privateDbPath = Path.Combine(serverDir, "synthesis_private.db");
-                string publicDbPath = Path.Combine(serverDir, "synthesis_public.db");
+                string knowledgeDbPath = Path.Combine(serverDir, "synthesis_knowledge.db");
 
                 // Ensure directory exists
                 Directory.CreateDirectory(serverDir);
@@ -278,11 +278,11 @@ namespace Synthesis.Editor
                 if (!File.Exists(initScript))
                 {
                     Debug.LogWarning("[Synthesis] init_databases.py not found, creating minimal DBs");
-                    CreateMinimalDatabases(privateDbPath, publicDbPath);
+                    CreateMinimalDatabases(privateDbPath, knowledgeDbPath);
                     return true;
                 }
 
-                // Run init script with embedded Python
+                // Run init script with embedded Python (correct path)
                 string pythonExe = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python", "python.exe");
 
                 var process = new System.Diagnostics.Process();
@@ -320,7 +320,7 @@ namespace Synthesis.Editor
             }
         }
 
-        private static void CreateMinimalDatabases(string privateDbPath, string publicDbPath)
+        private static void CreateMinimalDatabases(string privateDbPath, string knowledgeDbPath)
         {
             // Create minimal SQLite database files with proper format
             // This is a fallback if Python init script isn't available
@@ -376,14 +376,14 @@ namespace Synthesis.Editor
                 Debug.Log("[Synthesis] Private database already exists - preserving it");
             }
 
-            if (!File.Exists(publicDbPath))
+            if (!File.Exists(knowledgeDbPath))
             {
-                File.WriteAllBytes(publicDbPath, minimalDb);
-                Debug.Log("[Synthesis] Created minimal public database");
+                File.WriteAllBytes(knowledgeDbPath, minimalDb);
+                Debug.Log("[Synthesis] Created minimal knowledge database");
             }
             else
             {
-                Debug.Log("[Synthesis] Public database already exists - preserving it");
+                Debug.Log("[Synthesis] Knowledge database already exists - preserving it");
             }
         }
 
@@ -488,56 +488,23 @@ namespace Synthesis.Editor
 
         private static async Task DownloadModels()
         {
+            // NOTE: Current lightweight stack (BM25S + sentence-transformers) auto-downloads models to cache
+            // No manual model download needed - sentence-transformers/all-MiniLM-L6-v2 downloads on first use
             string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
             string targetDir = Path.Combine(packageRoot, "Server", "models");
 
-            // Check for specific model file to verify complete installation
-            string modelFile = Path.Combine(targetDir, "unsloth", "embeddinggemma-300m-GGUF", "embeddinggemma-300M-Q8_0.gguf");
-            if (File.Exists(modelFile))
-            {
-                Debug.Log("[Synthesis] Models already exist");
-                return;
-            }
+            // Ensure models directory exists for sentence-transformers cache
+            Directory.CreateDirectory(targetDir);
+            Debug.Log("[Synthesis] Models directory ready (sentence-transformers will auto-download on first use)");
 
-            try
-            {
-                // Clean up partial installation
-                if (Directory.Exists(targetDir))
-                {
-                    Debug.Log("[Synthesis] Cleaning up partial models installation...");
-                    Directory.Delete(targetDir, true);
-                }
-
-                httpClient.Timeout = System.TimeSpan.FromMinutes(10);
-
-                var response = await httpClient.GetAsync(MODELS_DOWNLOAD_URL);
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new System.Exception($"Download failed: {response.StatusCode}");
-                }
-
-                var zipPath = "models.zip";
-                using (var fs = new FileStream(zipPath, FileMode.Create))
-                {
-                    await response.Content.CopyToAsync(fs);
-                }
-
-                // Extract zip
-                Directory.CreateDirectory(targetDir);
-                System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-                File.Delete(zipPath);
-
-                Debug.Log("[Synthesis] Models downloaded");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[Synthesis] Models download failed: {e.Message}. RAG features may be limited.");
-            }
+            // Skip download - models auto-cache now
+            await Task.CompletedTask;
         }
 
         private static void InitializePythonEnvironment()
         {
-            string pythonPath = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
+            // FIXED: Use correct path - Server/python not KnowledgeBase/python
+            string pythonPath = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python", "python.exe");
 
             if (!File.Exists(pythonPath))
             {
@@ -547,66 +514,31 @@ namespace Synthesis.Editor
 
             try
             {
-                // Bootstrap pip for embedded Python using get-pip.py
-                Debug.Log("[Synthesis] Bootstrapping pip...");
+                // NOTE: Embedded Python runtime should already include required packages:
+                // bm25s, scipy, scikit-learn, sentence-transformers, numpy
+                // This check verifies the packages are available
 
-                // Download get-pip.py
-                string getPipPath = Path.Combine(Application.temporaryCachePath, "get-pip.py");
-                using (var client = new System.Net.WebClient())
+                Debug.Log("[Synthesis] Verifying Python packages...");
+
+                var testProcess = new System.Diagnostics.Process();
+                testProcess.StartInfo.FileName = pythonPath;
+                testProcess.StartInfo.Arguments = "-c \"import bm25s, scipy, sklearn, sentence_transformers; print('OK')\"";
+                testProcess.StartInfo.UseShellExecute = false;
+                testProcess.StartInfo.RedirectStandardOutput = true;
+                testProcess.StartInfo.RedirectStandardError = true;
+                testProcess.StartInfo.CreateNoWindow = true;
+                testProcess.Start();
+                testProcess.WaitForExit(10000);
+
+                if (testProcess.ExitCode == 0)
                 {
-                    client.DownloadFile("https://bootstrap.pypa.io/get-pip.py", getPipPath);
-                }
-
-                Debug.Log("[Synthesis] Downloaded get-pip.py, installing pip...");
-
-                var getPipProcess = new System.Diagnostics.Process();
-                getPipProcess.StartInfo.FileName = pythonPath;
-                getPipProcess.StartInfo.Arguments = $"\"{getPipPath}\"";
-                getPipProcess.StartInfo.UseShellExecute = false;
-                getPipProcess.StartInfo.RedirectStandardOutput = true;
-                getPipProcess.StartInfo.RedirectStandardError = true;
-                getPipProcess.StartInfo.CreateNoWindow = true;
-                getPipProcess.Start();
-                getPipProcess.WaitForExit(120000); // 2 minute timeout
-
-                if (getPipProcess.ExitCode != 0)
-                {
-                    string pipError = getPipProcess.StandardError.ReadToEnd();
-                    Debug.LogWarning($"[Synthesis] Could not bootstrap pip: {pipError}. Skipping package installation.");
-                    return;
-                }
-
-                Debug.Log("[Synthesis] Pip bootstrapped successfully");
-
-                // Install required packages
-                Debug.Log("[Synthesis] Installing Python packages...");
-                var process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = pythonPath;
-                process.StartInfo.Arguments = "-m pip install sqlite-rag chromadb sentence-transformers";
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.CreateNoWindow = true;
-                process.Start();
-
-                // Wait with timeout (5 minutes for package installation)
-                if (!process.WaitForExit(300000))
-                {
-                    process.Kill();
-                    Debug.LogWarning("[Synthesis] Python package installation timed out");
-                    return;
-                }
-
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-
-                if (process.ExitCode == 0)
-                {
-                    Debug.Log("[Synthesis] Python packages installed successfully");
+                    Debug.Log("[Synthesis] ✅ Python environment ready - all packages available");
                 }
                 else
                 {
-                    Debug.LogWarning($"[Synthesis] Python package installation warnings: {error}");
+                    string error = testProcess.StandardError.ReadToEnd();
+                    Debug.LogWarning($"[Synthesis] Python package verification failed: {error}");
+                    Debug.LogWarning("[Synthesis] You may need to reinstall the Python runtime package");
                 }
             }
             catch (System.Exception e)
@@ -617,16 +549,16 @@ namespace Synthesis.Editor
 
         private static void CreateInitialPublicContent()
         {
-            // Create some initial entries in public DB
+            // Create some initial entries in knowledge DB
             string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
-            string publicDbPath = Path.Combine(packageRoot, "Server", "synthesis_public.db");
+            string knowledgeDbPath = Path.Combine(packageRoot, "Server", "synthesis_knowledge.db");
 
-            if (!File.Exists(publicDbPath))
+            if (!File.Exists(knowledgeDbPath))
             {
                 return;
             }
 
-            Debug.Log("[Synthesis] Creating initial public KB content");
+            Debug.Log("[Synthesis] Creating initial knowledge base content");
 
             // Add welcome entry, documentation links, etc.
             // This will be expanded with actual initial content
