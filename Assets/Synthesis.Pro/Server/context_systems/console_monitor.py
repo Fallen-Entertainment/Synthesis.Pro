@@ -118,17 +118,56 @@ class ConsoleMonitor:
         line = entry.get('line', 0)
         stack_trace = entry.get('stackTrace', '')
 
-        # Extract ENHANCED context (Phase 1)
+        # Extract ENHANCED context (Phase 1 - Deep Omniscience)
+        # Scene context
         scene_name = entry.get('sceneName', '')
         scene_object_count = entry.get('sceneObjectCount', 0)
+        scene_path = entry.get('scenePath', '')
+        scene_loaded_time = entry.get('sceneLoadedTime', 0)
+
+        # GameObject context
         game_object_name = entry.get('gameObjectName', '')
         game_object_path = entry.get('gameObjectPath', '')
         component_names = entry.get('componentNames', [])
+        component_states = entry.get('componentStates', [])
+        game_object_active = entry.get('gameObjectActive', True)
+        game_object_active_hierarchy = entry.get('gameObjectActiveInHierarchy', True)
+        game_object_layer = entry.get('gameObjectLayer', '')
+        game_object_tag = entry.get('gameObjectTag', '')
+        child_count = entry.get('childCount', 0)
+
+        # Transform state
+        position = entry.get('position', '')
+        rotation = entry.get('rotation', '')
+        scale = entry.get('scale', '')
+
+        # Prefab context
+        is_prefab_instance = entry.get('isPrefabInstance', False)
+        prefab_path = entry.get('prefabPath', '')
+
+        # Activity context
         recent_logs = entry.get('recentLogs', [])
+
+        # Performance snapshot
         memory_usage_mb = entry.get('memoryUsageMB', 0)
         fps = entry.get('fps', 0)
 
-        # Create rich, searchable text with FULL context
+        # Time context
+        time_scale = entry.get('timeScale', 1.0)
+        frame_count = entry.get('frameCount', 0)
+        realtime_since_startup = entry.get('realtimeSinceStartup', 0)
+
+        # Build context
+        is_editor = entry.get('isEditor', False)
+        is_development_build = entry.get('isDevelopmentBuild', False)
+        platform = entry.get('platform', '')
+        unity_version = entry.get('unityVersion', '')
+
+        # Input context
+        mouse_position = entry.get('mousePosition', '')
+        any_key_pressed = entry.get('anyKeyPressed', False)
+
+        # Create rich, searchable text with FULL DEEP context
         formatted = f"[CONSOLE:{entry_type}] {timestamp}\n"
         formatted += f"Message: {message}\n"
 
@@ -136,31 +175,89 @@ class ConsoleMonitor:
         if file_path and file_path != 'unknown':
             formatted += f"Location: {file_path}:{line}\n"
 
-        # Scene context
+        # Scene context (enhanced)
         if scene_name:
-            formatted += f"Scene: {scene_name} ({scene_object_count} root objects)\n"
+            formatted += f"\n=== SCENE CONTEXT ===\n"
+            formatted += f"Scene: {scene_name}\n"
+            if scene_path:
+                formatted += f"Path: {scene_path}\n"
+            formatted += f"Root Objects: {scene_object_count}\n"
+            formatted += f"Time Since Loaded: {scene_loaded_time:.1f}s\n"
 
-        # GameObject context
+        # GameObject context (massively enhanced)
         if game_object_name:
-            formatted += f"GameObject: {game_object_name}\n"
+            formatted += f"\n=== GAMEOBJECT CONTEXT ===\n"
+            formatted += f"Name: {game_object_name}\n"
             if game_object_path:
                 formatted += f"Hierarchy: {game_object_path}\n"
-            if component_names:
-                formatted += f"Components: [{', '.join(component_names)}]\n"
+            formatted += f"Active: {game_object_active} (in hierarchy: {game_object_active_hierarchy})\n"
+            if game_object_layer:
+                formatted += f"Layer: {game_object_layer}\n"
+            if game_object_tag:
+                formatted += f"Tag: {game_object_tag}\n"
+            formatted += f"Children: {child_count}\n"
+
+            # Transform
+            if position or rotation or scale:
+                formatted += f"\n--- Transform ---\n"
+                if position:
+                    formatted += f"Position: {position}\n"
+                if rotation:
+                    formatted += f"Rotation: {rotation}\n"
+                if scale:
+                    formatted += f"Scale: {scale}\n"
+
+            # Prefab
+            if is_prefab_instance:
+                formatted += f"\n--- Prefab ---\n"
+                formatted += f"Instance of: {prefab_path}\n"
+
+            # Components (with states!)
+            if component_states:
+                formatted += f"\n--- Components & States ---\n"
+                for state in component_states:
+                    formatted += f"  • {state}\n"
+            elif component_names:
+                # Fallback to just names if states not available
+                formatted += f"\n--- Components ---\n"
+                formatted += f"[{', '.join(component_names)}]\n"
 
         # Recent activity (what happened just before)
         if recent_logs:
-            formatted += f"Recent Activity:\n"
+            formatted += f"\n=== RECENT ACTIVITY ===\n"
             for log in recent_logs:
-                formatted += f"  - {log}\n"
+                formatted += f"  {log}\n"
 
         # Performance snapshot
         if memory_usage_mb > 0 or fps > 0:
-            formatted += f"Performance: {memory_usage_mb:.1f}MB memory, {fps} FPS\n"
+            formatted += f"\n=== PERFORMANCE ===\n"
+            formatted += f"Memory: {memory_usage_mb:.1f}MB\n"
+            formatted += f"FPS: {fps}\n"
+
+        # Time context
+        if time_scale != 1.0 or frame_count > 0:
+            formatted += f"\n=== TIME CONTEXT ===\n"
+            formatted += f"Frame: {frame_count}\n"
+            formatted += f"Time Scale: {time_scale}\n"
+            formatted += f"Runtime: {realtime_since_startup:.1f}s\n"
+
+        # Build context
+        if platform or unity_version:
+            formatted += f"\n=== BUILD CONTEXT ===\n"
+            formatted += f"Platform: {platform}\n"
+            formatted += f"Unity: {unity_version}\n"
+            formatted += f"Editor: {is_editor}\n"
+            formatted += f"Development: {is_development_build}\n"
+
+        # Input context
+        if mouse_position or any_key_pressed:
+            formatted += f"\n=== INPUT STATE ===\n"
+            formatted += f"Mouse: {mouse_position}\n"
+            formatted += f"Key Pressed: {any_key_pressed}\n"
 
         # Full stack trace
         if stack_trace:
-            formatted += f"Stack Trace:\n{stack_trace}\n"
+            formatted += f"\n=== STACK TRACE ===\n{stack_trace}\n"
 
         # PHASE 3: Intelligent Pattern Matching
         if self.pattern_matcher and entry_type == 'ERROR':

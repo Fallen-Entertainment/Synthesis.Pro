@@ -8,7 +8,7 @@
 
 **AI Collaboration for Unity Development with Privacy-First Architecture**
 
-Built in partnership between human vision and AI capability.
+Persistent AI collaboration infrastructure for Unity development.
 
 ## Quick Start
 
@@ -19,11 +19,11 @@ Built in partnership between human vision and AI capability.
 
 ## Key Features
 
-- **Partnership Model**: AI that learns your style and builds a relationship over time
+- **Persistent Memory**: AI that learns your codebase and development patterns over time
 - **Dual Database Privacy**: Public Unity knowledge + Private project data (never shared)
 - **Intelligent Chat**: Full project context with privacy awareness
 - **Hybrid Search**: Semantic + keyword search across both databases
-- **Database Management**: Backup, restore, and clear your relationship history
+- **Database Management**: Backup, restore, and clear your session history
 - **Cost Efficient**: Save ~85% on AI costs through smart context management (See [EFFICIENT_WORKFLOW.md](EFFICIENT_WORKFLOW.md))
 
 ## Privacy Architecture
@@ -73,7 +73,7 @@ The more you use it, the smarter and cheaper it gets. See [EFFICIENT_WORKFLOW.md
 
 > "Privacy isn't about having something to hide - it's about having space to think, learn, and collaborate freely."
 
-Both you and your AI partner deserve privacy for honest collaboration.
+Effective AI collaboration requires clear boundaries between shared knowledge and private work.
 
 ## Availability
 

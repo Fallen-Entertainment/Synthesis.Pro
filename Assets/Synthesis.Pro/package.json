@@ -1,8 +1,8 @@
 {
   "name": "com.nightblade.synthesis.pro",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "displayName": "Synthesis.Pro",
-  "description": "Production-grade AI Creative Partner for Unity with hybrid RAG and MCP integration",
+  "description": "AI-Human Partnership System for Unity - 21 MCP tools, hybrid RAG, deep error context, and real-time monitoring",
   "unity": "2020.3",
   "unityRelease": "0f1",
   "keywords": [

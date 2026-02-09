@@ -15,6 +15,14 @@ Philosophy: Fast, simple, reliable. No complex dependencies.
 """
 
 import os
+import sys
+
+# Suppress transformers library verbosity (model loading details → stderr)
+# Keeps stdout clean for AI parsing, stderr available for human monitoring
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = '1'
+os.environ['TQDM_DISABLE'] = '1'  # Suppress progress bars
+
 import sqlite3
 import pickle
 from typing import List, Dict, Union, Optional, Tuple

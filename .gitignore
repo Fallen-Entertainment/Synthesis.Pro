@@ -101,6 +101,7 @@ InitTestScene*.unity*
 # Synthesis.Pro - RAG Databases and Cache
 # Never commit user databases (contain sensitive data)
 *.db
+*.db.meta
 *.db-shm
 *.db-wal
 *.db.backup*
@@ -111,20 +112,30 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Synthesis.Pro - Large download archives
+# Synthesis.Pro - Downloaded Runtime (not in repo - downloaded on first use)
+/PythonRuntime/
+python-runtime*.zip
+
+# Synthesis.Pro - OLD DOWNLOAD ARCHIVES (deprecated)
 models.zip
 python.zip
 python-embedded.zip
 python-embedded-rag.zip
 runtime-packages/
 
+# Claudine/ClaudiaOS - Keep secret (belongs in separate Claudine project)
+*CLAUDINE*
+*claudine*
+*CLAUDIA*
+*claudia*
+CLAUDIAOS_VISION.md
+
 # Synthesis.Pro - Test artifacts
 Synthesis.Pro/Server/test_*.json
 
-# Synthesis.Pro - Embedded Python Runtime and Models
-# Large binary files that should be downloaded, not committed
+# Synthesis.Pro - OLD PATHS (deprecated, keep for backwards compatibility)
+# These paths are no longer used - Python is now bundled at PythonRuntime/
 Synthesis.Pro/Server/python/
-Synthesis.Pro/Server/models/
 Assets/Synthesis.Pro/KnowledgeBase/python/
 
 # Python runtime files (DLLs and modules) in Synthesis.Pro root
@@ -137,6 +148,14 @@ Synthesis.Pro/Runtime/Packages/
 # Synthesis.Pro - Migration artifacts
 Synthesis.Pro/Server/migration_log.txt
 nul
+**/nul
+
+# Prevent Unity import loops - extra protection
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.db-wal
+**/*.db-shm
 
 # Synthesis.Pro - Build artifacts
 temp-python-build/
@@ -148,12 +167,17 @@ temp-python-build/
 # But track the README explaining its purpose
 !/[Aa]ssets/Asset Container/README.md
 
-# Synthesis.Pro - Embedded Runtimes (large, should be downloaded not committed)
+# Synthesis.Pro - OLD RUNTIME PATHS (deprecated)
+# Python runtime is now bundled at PythonRuntime/ (project root)
 Assets/Synthesis.Pro/Server/python/
 Assets/Synthesis.Pro/Server/node/
 Assets/Synthesis.Pro/Server/runtime/
-Assets/Synthesis.Pro/Server/models/
+
+# Synthesis.Pro - Database (never commit - contains user data)
 Assets/Synthesis.Pro/Server/database/
+
+# Synthesis.Pro - Model cache (auto-downloads on first use)
+Assets/Synthesis.Pro/Server/models/
 
 # Synthesis.Pro - Asset Store Compliance
 # Exclude executables for Asset Store submission (keep DLLs as native plugins)
@@ -170,3 +194,17 @@ Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/torch/bin/protoc.exe
 /synthesis_private.db
 /synthesis_public.db
 /models.zip
+
+# Synthesis.Pro - BM25 search indexes (regenerated on demand)
+**/*.pkl
+**/*.pkl.meta
+
+# Synthesis.Pro - Runtime generated files
+**/console_errors_latest.json
+**/console_errors_latest.json.meta
+**/ai_observation*.txt
+**/ai_observation*.txt.meta
+**/.pythonnowritebytecode
+
+# Synthesis.Pro - Python cache meta files
+**/__pycache__.meta

@@ -1,0 +1,48 @@
+{
+  "servers": {
+    "arodoid": {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@arodoid/unity-mcp"],
+      "env": {
+        "MCP_AUTH_SECRET_KEY": "8LFfBVl41qa1LxobMr/3shJfLrwTCvxDZR9NUReF2oM="
+      },
+      "capabilities": [
+        "csharp_execution",
+        "unity_api_access",
+        "scene_queries"
+      ],
+      "priority": 1
+    },
+    "coplaydev": {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@coplaydev/unity-mcp"],
+      "capabilities": [
+        "asset_creation",
+        "prefab_management",
+        "shader_workflows"
+      ],
+      "priority": 2
+    }
+  },
+  "security": {
+    "require_auth": true,
+    "sandbox_filesystem": true,
+    "allowed_paths": [
+      "Assets/",
+      "ProjectSettings/"
+    ],
+    "blocked_paths": [
+      "Library/",
+      "Temp/",
+      "Logs/"
+    ]
+  },
+  "integration": {
+    "websocket_port": 8765,
+    "rag_database": "../Server/database/synthesis_private.db",
+    "log_executions": true,
+    "execution_timeout": 30
+  }
+}

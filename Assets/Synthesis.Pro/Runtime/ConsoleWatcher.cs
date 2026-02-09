@@ -298,6 +298,8 @@ namespace Synthesis.Bridge
             Scene activeScene = SceneManager.GetActiveScene();
             entry.sceneName = activeScene.name;
             entry.sceneObjectCount = activeScene.isLoaded ? activeScene.rootCount : 0;
+            entry.scenePath = activeScene.path;
+            entry.sceneLoadedTime = Time.timeSinceLevelLoad;
 
             // GameObject identification from stack trace
             GameObject targetObject = TryFindGameObjectFromStackTrace(stackTrace);
@@ -306,12 +308,42 @@ namespace Synthesis.Bridge
                 entry.gameObjectName = targetObject.name;
                 entry.gameObjectPath = GetGameObjectPath(targetObject);
                 entry.componentNames = GetComponentNames(targetObject);
+
+                // Enhanced GameObject context
+                entry.gameObjectActive = targetObject.activeSelf;
+                entry.gameObjectActiveInHierarchy = targetObject.activeInHierarchy;
+                entry.gameObjectLayer = LayerMask.LayerToName(targetObject.layer);
+                entry.gameObjectTag = targetObject.tag;
+                entry.childCount = targetObject.transform.childCount;
+
+                // Transform state
+                entry.position = targetObject.transform.position.ToString("F2");
+                entry.rotation = targetObject.transform.rotation.eulerAngles.ToString("F2");
+                entry.scale = targetObject.transform.localScale.ToString("F2");
+
+                // Prefab context
+                #if UNITY_EDITOR
+                var prefabType = UnityEditor.PrefabUtility.GetPrefabInstanceStatus(targetObject);
+                entry.isPrefabInstance = prefabType != UnityEditor.PrefabInstanceStatus.NotAPrefab;
+                if (entry.isPrefabInstance)
+                {
+                    var prefabAsset = UnityEditor.PrefabUtility.GetCorrespondingObjectFromSource(targetObject);
+                    if (prefabAsset != null)
+                    {
+                        entry.prefabPath = UnityEditor.AssetDatabase.GetAssetPath(prefabAsset);
+                    }
+                }
+                #endif
+
+                // Component states
+                entry.componentStates = GetComponentStates(targetObject);
             }
             else
             {
                 entry.gameObjectName = "";
                 entry.gameObjectPath = "";
                 entry.componentNames = new List<string>();
+                entry.componentStates = new List<string>();
             }
 
             // Recent log context (what happened just before this error)
@@ -320,6 +352,30 @@ namespace Synthesis.Bridge
             // Performance snapshot
             entry.memoryUsageMB = (float)System.GC.GetTotalMemory(false) / (1024f * 1024f);
             entry.fps = (int)(1f / Time.smoothDeltaTime);
+
+            // Time context
+            entry.timeScale = Time.timeScale;
+            entry.frameCount = Time.frameCount;
+            entry.realtimeSinceStartup = Time.realtimeSinceStartup;
+
+            // Build context
+            entry.isEditor = Application.isEditor;
+            entry.isDevelopmentBuild = Debug.isDebugBuild;
+            entry.platform = Application.platform.ToString();
+            entry.unityVersion = Application.unityVersion;
+
+            // Input context (if applicable)
+            try
+            {
+                entry.mousePosition = Input.mousePosition.ToString("F0");
+                entry.anyKeyPressed = Input.anyKey;
+            }
+            catch
+            {
+                // Input might not be available in all contexts
+                entry.mousePosition = "N/A";
+                entry.anyKeyPressed = false;
+            }
         }
 
         /// <summary>
@@ -378,6 +434,61 @@ namespace Synthesis.Bridge
 
             Component[] components = go.GetComponents<Component>();
             return components.Where(c => c != null).Select(c => c.GetType().Name).ToList();
+        }
+
+        /// <summary>
+        /// Get detailed component states (enabled/disabled, key properties)
+        /// </summary>
+        private List<string> GetComponentStates(GameObject go)
+        {
+            if (go == null)
+                return new List<string>();
+
+            var states = new List<string>();
+            Component[] components = go.GetComponents<Component>();
+
+            foreach (var component in components)
+            {
+                if (component == null) continue;
+
+                string state = component.GetType().Name;
+
+                // Check if component is enabled (for Behaviours)
+                if (component is Behaviour behaviour)
+                {
+                    state += behaviour.enabled ? " [enabled]" : " [disabled]";
+                }
+
+                // Add specific state for common components
+                if (component is Rigidbody rb)
+                {
+                    state += $" velocity={rb.linearVelocity.magnitude:F2}";
+                }
+                else if (component is Animator anim)
+                {
+                    if (anim.runtimeAnimatorController != null)
+                    {
+                        state += $" controller={anim.runtimeAnimatorController.name}";
+                        if (anim.isActiveAndEnabled)
+                        {
+                            var currentState = anim.GetCurrentAnimatorStateInfo(0);
+                            state += $" state={currentState.shortNameHash}";
+                        }
+                    }
+                }
+                else if (component is Collider col)
+                {
+                    state += col.enabled ? " [col:enabled]" : " [col:disabled]";
+                }
+                else if (component is Renderer rend)
+                {
+                    state += rend.enabled ? " [visible]" : " [hidden]";
+                }
+
+                states.Add(state);
+            }
+
+            return states;
         }
 
         private void ExtractFileAndLine(string stackTrace, out string file, out int line)
@@ -462,15 +573,53 @@ namespace Synthesis.Bridge
                     { "stackTrace", entry.stackTrace ?? "" },
                     { "timestamp", entry.timestamp },
 
-                    // Enhanced Unity context (Phase 1 - Deep Omniscience)
+                    // Enhanced Scene context
                     { "sceneName", entry.sceneName ?? "" },
                     { "sceneObjectCount", entry.sceneObjectCount },
+                    { "scenePath", entry.scenePath ?? "" },
+                    { "sceneLoadedTime", entry.sceneLoadedTime },
+
+                    // Enhanced GameObject context
                     { "gameObjectName", entry.gameObjectName ?? "" },
                     { "gameObjectPath", entry.gameObjectPath ?? "" },
                     { "componentNames", entry.componentNames ?? new List<string>() },
+                    { "componentStates", entry.componentStates ?? new List<string>() },
+                    { "gameObjectActive", entry.gameObjectActive },
+                    { "gameObjectActiveInHierarchy", entry.gameObjectActiveInHierarchy },
+                    { "gameObjectLayer", entry.gameObjectLayer ?? "" },
+                    { "gameObjectTag", entry.gameObjectTag ?? "" },
+                    { "childCount", entry.childCount },
+
+                    // Transform state
+                    { "position", entry.position ?? "" },
+                    { "rotation", entry.rotation ?? "" },
+                    { "scale", entry.scale ?? "" },
+
+                    // Prefab context
+                    { "isPrefabInstance", entry.isPrefabInstance },
+                    { "prefabPath", entry.prefabPath ?? "" },
+
+                    // Activity context
                     { "recentLogs", entry.recentLogs ?? new List<string>() },
+
+                    // Performance snapshot
                     { "memoryUsageMB", entry.memoryUsageMB },
-                    { "fps", entry.fps }
+                    { "fps", entry.fps },
+
+                    // Time context
+                    { "timeScale", entry.timeScale },
+                    { "frameCount", entry.frameCount },
+                    { "realtimeSinceStartup", entry.realtimeSinceStartup },
+
+                    // Build context
+                    { "isEditor", entry.isEditor },
+                    { "isDevelopmentBuild", entry.isDevelopmentBuild },
+                    { "platform", entry.platform ?? "" },
+                    { "unityVersion", entry.unityVersion ?? "" },
+
+                    // Input context
+                    { "mousePosition", entry.mousePosition ?? "" },
+                    { "anyKeyPressed", entry.anyKeyPressed }
                 };
                 result.Add(dict);
             }
@@ -534,15 +683,53 @@ namespace Synthesis.Bridge
             public string stackTrace;
             public string timestamp;
 
-            // Enhanced Unity context (Phase 1 - Deep Omniscience)
+            // Enhanced Scene context
             public string sceneName;
             public int sceneObjectCount;
+            public string scenePath;
+            public float sceneLoadedTime;
+
+            // Enhanced GameObject context
             public string gameObjectName;
             public string gameObjectPath;
             public List<string> componentNames;
+            public List<string> componentStates;
+            public bool gameObjectActive;
+            public bool gameObjectActiveInHierarchy;
+            public string gameObjectLayer;
+            public string gameObjectTag;
+            public int childCount;
+
+            // Transform state
+            public string position;
+            public string rotation;
+            public string scale;
+
+            // Prefab context
+            public bool isPrefabInstance;
+            public string prefabPath;
+
+            // Activity context
             public List<string> recentLogs;
+
+            // Performance snapshot
             public float memoryUsageMB;
             public int fps;
+
+            // Time context
+            public float timeScale;
+            public int frameCount;
+            public float realtimeSinceStartup;
+
+            // Build context
+            public bool isEditor;
+            public bool isDevelopmentBuild;
+            public string platform;
+            public string unityVersion;
+
+            // Input context
+            public string mousePosition;
+            public bool anyKeyPressed;
         }
 
         [Serializable]

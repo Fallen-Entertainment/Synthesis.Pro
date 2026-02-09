@@ -1,0 +1,53 @@
+**Synthesis.Pro - AI Collaborator for Unity Development**
+
+What if your AI assistant actually *remembered* your project?
+
+We built Synthesis.Pro to solve a fundamental problem: every AI session starts from zero. You explain your architecture again. Describe that bug again. Re-explain your patterns again.
+
+**Not anymore.**
+
+**What It Does:**
+
+**Memory That Persists**
+• AI remembers your project structure, past solutions, coding patterns
+• Searches previous sessions: "Have we seen this error before?"
+• Context accumulates instead of resetting
+
+**Deep Unity Integration**
+• 21 MCP tools for direct Unity operations
+• Real-time error monitoring with full scene context
+• Execute C#, inspect GameObjects, query project state
+• Works with Claude Code, Cursor, VSCode
+
+**13x More Efficient Debugging**
+• Captures errors with complete context automatically
+• Scene state, GameObject hierarchy, component data included
+• No more "what error?" back-and-forth
+• AI knows everything when something breaks
+
+**Collective Knowledge**
+• Shared solutions database
+• Hybrid RAG search (keyword + semantic)
+• Knowledge base grows with contributions
+
+**Real Example:**
+
+*Before:*
+"Getting a NullRef in PlayerController"
+→ 5 messages of back-and-forth explaining context
+
+*With Synthesis.Pro:*
+"NullRef in PlayerController.Update() line 42 - Player's Rigidbody component null. Not assigned in Inspector. Same issue from Session 2026-02-03."
+→ One message. Complete context. Historical awareness.
+
+**Setup Time:** ~5 minutes
+**Cost:** Free (MIT License, no API costs beyond your AI provider)
+**Requirements:** Unity 2020.3+, Claude Code/Cursor/VSCode
+
+**Status:** v2.0.0 Production Ready
+**What's Included:** 21 MCP tools, hybrid RAG, error monitoring, embedded Python runtime, complete docs
+
+*AI assistance that remembers context and improves with use.*
+
+**Repository:** [GitHub URL]
+**Try it. See what persistent context enables.**

@@ -1,31 +1,29 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
-using System.Net.Http;
-using System.Threading.Tasks;
+using System.IO.Compression;
+using UnityEngine.Networking;
 
 namespace Synthesis.Editor
 {
     /// <summary>
     /// Runs automatic setup on first import
-    /// Initializes databases, downloads embeds, and configures system
+    /// Downloads Python runtime and initializes databases
     /// </summary>
     [InitializeOnLoad]
     public static class FirstTimeSetup
     {
         private const string SETUP_COMPLETE_KEY = "Synthesis.SetupComplete";
-        private const string PYTHON_DOWNLOAD_URL = "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-runtime-deps/python-embedded.zip";
-        private const string NODE_DOWNLOAD_URL = "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-runtime-deps/node-embedded.zip";
-        private const string MODELS_DOWNLOAD_URL = "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-runtime-deps/models.zip";
-        private static readonly HttpClient httpClient = new HttpClient();
+        private const string PYTHON_RUNTIME_URL = "https://github.com/YourUsername/Synthesis.Pro/releases/latest/download/python-runtime.zip";
+        private const long PYTHON_RUNTIME_SIZE_MB = 300; // Approximate size
 
         static FirstTimeSetup()
         {
             // CRITICAL: Ensure Newtonsoft.Json is installed FIRST before anything else
             EditorApplication.delayCall += EnsureNewtonsoftJson;
 
-            // Auto-fix any incorrect paths from previous versions
-            EditorApplication.delayCall += ValidateAndFixPaths;
+            // ALWAYS validate and correct structure (works for both first install and major updates)
+            EditorApplication.delayCall += ValidateAndCorrectStructure;
 
             // Check if setup already completed
             if (EditorPrefs.GetBool(SETUP_COMPLETE_KEY, false))
@@ -93,65 +91,179 @@ namespace Synthesis.Editor
         }
 
         /// <summary>
-        /// Validates and automatically fixes incorrect file paths from previous versions
-        /// Prevents users and AIs from dealing with path migration issues
+        /// Validates and corrects complete project structure
+        /// Works for both first installs and major updates
+        /// Ensures all directories exist and files are in correct locations
         /// </summary>
-        private static void ValidateAndFixPaths()
+        private static void ValidateAndCorrectStructure()
         {
             try
             {
+                int issuesFixed = 0;
+                System.Text.StringBuilder report = new System.Text.StringBuilder();
+                report.AppendLine("[Synthesis] Validating project structure...");
+
+                string projectRoot = Path.GetDirectoryName(Application.dataPath);
                 string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
                 string serverDir = Path.Combine(packageRoot, "Server");
-                bool fixedAnything = false;
 
-                // Fix Python in wrong location (KnowledgeBase instead of Server)
-                string wrongPythonPath = Path.Combine(packageRoot, "KnowledgeBase", "python");
-                string correctPythonPath = Path.Combine(serverDir, "python");
-                if (Directory.Exists(wrongPythonPath) && !Directory.Exists(correctPythonPath))
+                // ===== STEP 1: Ensure all critical directories exist =====
+                string[] requiredDirs = new string[]
                 {
-                    Debug.Log("[Synthesis] Migrating Python to correct location...");
-                    Directory.Move(wrongPythonPath, correctPythonPath);
-                    fixedAnything = true;
+                    Path.Combine(serverDir, "database"),      // Databases
+                    Path.Combine(serverDir, "runtime"),       // Runtime files
+                    Path.Combine(serverDir, "models"),        // AI models cache
+                    Path.Combine(serverDir, "context_systems"), // Context capture
+                    Path.Combine(serverDir, "core"),          // Core Python
+                    Path.Combine(packageRoot, "RAG", "core"), // RAG engine
+                };
+
+                foreach (string dir in requiredDirs)
+                {
+                    if (!Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                        report.AppendLine($"  ✓ Created: {Path.GetFileName(Path.GetDirectoryName(dir))}/{Path.GetFileName(dir)}");
+                        issuesFixed++;
+                    }
                 }
 
-                // Fix databases in wrong location (project root instead of Server)
+                // ===== STEP 2: Migrate databases from wrong locations =====
+                string databaseDir = Path.Combine(serverDir, "database");
                 string[] dbFiles = { "synthesis_private.db", "synthesis_knowledge.db", "synthesis_public.db" };
-                string projectRoot = Path.GetDirectoryName(Application.dataPath);
+
+                // Check project root
                 foreach (string dbFile in dbFiles)
                 {
-                    string wrongDbPath = Path.Combine(projectRoot, dbFile);
-                    string correctDbPath = Path.Combine(serverDir, dbFile);
-                    if (File.Exists(wrongDbPath) && !File.Exists(correctDbPath))
+                    string wrongPath = Path.Combine(projectRoot, dbFile);
+                    string correctPath = Path.Combine(databaseDir, dbFile);
+                    if (File.Exists(wrongPath) && !File.Exists(correctPath))
                     {
-                        Debug.Log($"[Synthesis] Migrating {dbFile} to correct location...");
-                        File.Move(wrongDbPath, correctDbPath);
-                        fixedAnything = true;
+                        File.Move(wrongPath, correctPath);
+                        report.AppendLine($"  ✓ Migrated: {dbFile} → Server/database/");
+                        issuesFixed++;
                     }
                 }
 
-                // Fix node/models in wrong locations if they somehow ended up elsewhere
-                string[] runtimeFolders = { "node", "models" };
-                foreach (string folder in runtimeFolders)
+                // Check old Server/core location (v1.0 legacy)
+                string oldCoreDbDir = Path.Combine(serverDir, "core");
+                foreach (string dbFile in dbFiles)
                 {
-                    string wrongPath = Path.Combine(projectRoot, folder);
-                    string correctPath = Path.Combine(serverDir, folder);
-                    if (Directory.Exists(wrongPath) && !Directory.Exists(correctPath))
+                    string oldPath = Path.Combine(oldCoreDbDir, dbFile);
+                    string correctPath = Path.Combine(databaseDir, dbFile);
+                    if (File.Exists(oldPath) && !File.Exists(correctPath))
                     {
-                        Debug.Log($"[Synthesis] Migrating {folder} to correct location...");
-                        Directory.Move(wrongPath, correctPath);
-                        fixedAnything = true;
+                        File.Move(oldPath, correctPath);
+                        report.AppendLine($"  ✓ Migrated: {dbFile} from core/ → database/");
+                        issuesFixed++;
                     }
                 }
 
-                if (fixedAnything)
+                // ===== STEP 3: Migrate models cache from wrong locations =====
+                string correctModelsPath = Path.Combine(serverDir, "models");
+                string[] oldModelPaths = new string[]
+                {
+                    Path.Combine(projectRoot, "models"),           // Project root
+                    Path.Combine(packageRoot, "models"),           // Package root
+                    Path.Combine(serverDir, "core", "models"),     // Old core location
+                };
+
+                foreach (string oldPath in oldModelPaths)
+                {
+                    if (Directory.Exists(oldPath) && oldPath != correctModelsPath)
+                    {
+                        // Move contents, not the directory itself
+                        foreach (string file in Directory.GetFiles(oldPath, "*", SearchOption.AllDirectories))
+                        {
+                            string relativePath = file.Substring(oldPath.Length + 1);
+                            string targetPath = Path.Combine(correctModelsPath, relativePath);
+                            Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+                            if (!File.Exists(targetPath))
+                            {
+                                File.Move(file, targetPath);
+                            }
+                        }
+                        Directory.Delete(oldPath, true);
+                        report.AppendLine($"  ✓ Migrated: models/ → Server/models/");
+                        issuesFixed++;
+                    }
+                }
+
+                // ===== STEP 4: Clean up deprecated files/folders =====
+                string[] deprecatedPaths = new string[]
+                {
+                    Path.Combine(serverDir, "python"),             // Old bundled Python location
+                    Path.Combine(packageRoot, "KnowledgeBase"),    // Old structure
+                    Path.Combine(serverDir, "migration_log.txt"),  // Temp file
+                };
+
+                foreach (string deprecatedPath in deprecatedPaths)
+                {
+                    if (Directory.Exists(deprecatedPath))
+                    {
+                        Directory.Delete(deprecatedPath, true);
+                        report.AppendLine($"  ✓ Removed deprecated: {Path.GetFileName(deprecatedPath)}");
+                        issuesFixed++;
+                    }
+                    else if (File.Exists(deprecatedPath))
+                    {
+                        File.Delete(deprecatedPath);
+                        report.AppendLine($"  ✓ Removed deprecated: {Path.GetFileName(deprecatedPath)}");
+                        issuesFixed++;
+                    }
+                }
+
+                // ===== STEP 5: Validate Python runtime location =====
+                string pythonRuntimePath = Path.Combine(projectRoot, "PythonRuntime", "python", "python.exe");
+                string oldPythonPath = Path.Combine(packageRoot, "PythonRuntime", "python", "python.exe");
+
+                // If Python is in wrong location (inside Assets), move it
+                if (File.Exists(oldPythonPath) && !File.Exists(pythonRuntimePath))
+                {
+                    string oldPythonRoot = Path.Combine(packageRoot, "PythonRuntime");
+                    string newPythonRoot = Path.Combine(projectRoot, "PythonRuntime");
+                    Directory.Move(oldPythonRoot, newPythonRoot);
+                    report.AppendLine($"  ✓ Migrated: PythonRuntime → project root (faster, no Unity import)");
+                    issuesFixed++;
+                }
+
+                // ===== STEP 6: Clean up orphaned .meta files =====
+                string[] orphanedMetaFiles = new string[]
+                {
+                    Path.Combine(packageRoot, "KnowledgeBase.meta"),
+                    Path.Combine(serverDir, "python.meta"),
+                    Path.Combine(serverDir, "core", "models.meta"),
+                };
+
+                foreach (string metaFile in orphanedMetaFiles)
+                {
+                    if (File.Exists(metaFile))
+                    {
+                        string correspondingPath = metaFile.Substring(0, metaFile.Length - 5); // Remove .meta
+                        if (!Directory.Exists(correspondingPath) && !File.Exists(correspondingPath))
+                        {
+                            File.Delete(metaFile);
+                            report.AppendLine($"  ✓ Removed orphaned: {Path.GetFileName(metaFile)}");
+                            issuesFixed++;
+                        }
+                    }
+                }
+
+                // ===== FINAL REPORT =====
+                if (issuesFixed > 0)
                 {
                     AssetDatabase.Refresh();
-                    Debug.Log("[Synthesis] ✅ Path migrations complete - all files in correct locations");
+                    report.AppendLine($"\n[Synthesis] ✅ Structure validated - {issuesFixed} issue(s) fixed");
+                    Debug.Log(report.ToString());
+                }
+                else
+                {
+                    Debug.Log("[Synthesis] ✅ Structure validated - all correct");
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning($"[Synthesis] Path validation warning: {e.Message}");
+                Debug.LogWarning($"[Synthesis] Structure validation warning: {e.Message}\n{e.StackTrace}");
             }
         }
 
@@ -159,69 +271,72 @@ namespace Synthesis.Editor
         {
             Debug.Log("[Synthesis] Running first-time setup...");
 
+            // Check if Python runtime exists
+            string pythonPath = Path.Combine(Application.dataPath, "..", "PythonRuntime", "python", "python.exe");
+            bool needsPythonDownload = !File.Exists(pythonPath);
+
+            string setupMessage = "🎉 AI Collaboration System for Unity\n\n" +
+                "First-time setup will:\n";
+
+            if (needsPythonDownload)
+            {
+                setupMessage += $"• Download Python runtime (~{PYTHON_RUNTIME_SIZE_MB}MB, one-time)\n";
+            }
+
+            setupMessage += "• Initialize knowledge base databases\n" +
+                "• Create initial content\n\n" +
+                (needsPythonDownload ? "This takes about 2-3 minutes.\n\n" : "This takes about 10 seconds.\n\n") +
+                "Continue?";
+
             bool shouldSetup = EditorUtility.DisplayDialog(
-                "Welcome to Synthesis.Pro Beta!",
-                "🚧 BETA - Early Access Release\n" +
-                "We're actively seeking feedback!\n\n" +
-                "First-time setup required:\n" +
-                "• Initialize knowledge base databases\n" +
-                "• Download Python runtime (~50MB)\n" +
-                "• Download Node.js runtime (~20MB)\n" +
-                "• Download AI models (~200MB)\n" +
-                "• Configure system\n\n" +
-                "This will take a few minutes.\n\n" +
-                "Continue?",
+                "Welcome to Synthesis.Pro!",
+                setupMessage,
                 "Yes, Set Up",
                 "Later"
             );
 
             if (!shouldSetup)
             {
-                Debug.Log("[Synthesis] Setup postponed. Run 'Synthesis > Setup > First Time Setup' when ready.");
+                Debug.Log("[Synthesis] Setup postponed. Run 'Tools > Synthesis > Setup > First Time Setup' when ready.");
                 return;
             }
 
             // Run setup steps
-            _ = SetupAsync(); // Fire and forget with proper error handling inside
+            RunSetup();
         }
 
         [MenuItem("Tools/Synthesis/Setup/First Time Setup", false, 100)]
         public static void ManualSetup()
         {
-            _ = SetupAsync(); // Fire and forget with proper error handling inside
+            RunSetup();
         }
 
-        private static async Task SetupAsync()
+        private static void RunSetup()
         {
             EditorUtility.DisplayProgressBar("Synthesis Setup", "Initializing...", 0.0f);
 
             try
             {
-                // Step 1: Download Python runtime FIRST
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Python runtime...", 0.2f);
-                await DownloadPythonRuntime();
+                // Step 1: Download Python runtime if needed
+                string pythonPath = Path.Combine(Application.dataPath, "..", "PythonRuntime", "python", "python.exe");
+                if (!File.Exists(pythonPath))
+                {
+                    EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Python runtime...", 0.1f);
+                    if (!DownloadPythonRuntime())
+                    {
+                        throw new System.Exception("Failed to download Python runtime");
+                    }
+                }
 
-                // Step 2: Download Node.js runtime
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Node.js runtime...", 0.3f);
-                await DownloadNodeRuntime();
-
-                // Step 3: Download models
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading AI models...", 0.5f);
-                await DownloadModels();
-
-                // Step 4: Initialize Python environment
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Setting up Python environment...", 0.6f);
-                InitializePythonEnvironment();
-
-                // Step 5: Initialize databases (requires Python)
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating databases...", 0.8f);
+                // Step 2: Initialize databases
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Initializing databases...", 0.7f);
                 if (!InitializeDatabases())
                 {
                     throw new System.Exception("Failed to initialize databases");
                 }
 
-                // Step 6: Create initial public DB content
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating initial content...", 0.9f);
+                // Step 2: Create initial public DB content
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating initial content...", 0.8f);
                 CreateInitialPublicContent();
 
                 // Mark setup as complete
@@ -231,14 +346,13 @@ namespace Synthesis.Editor
 
                 EditorUtility.DisplayDialog(
                     "Setup Complete!",
-                    "Synthesis.Pro Beta is ready to use!\n\n" +
+                    "Synthesis.Pro is ready to use!\n\n" +
                     "Next steps:\n" +
-                    "• Check 'Synthesis > Test Connection'\n" +
-                    "• Add SynLink to your scene\n" +
+                    "• Start MCP server (see QUICK_START.md)\n" +
+                    "• Add ConsoleWatcher to your scene\n" +
                     "• Start building with AI!\n\n" +
-                    "📢 Beta Feedback:\n" +
-                    "github.com/Fallen-Entertainment/Synthesis.Pro/issues\n\n" +
-                    "Documentation: fallen-entertainment.github.io/Synthesis.Pro",
+                    "📖 Documentation: See README.md\n" +
+                    "🚀 Quick Start: See QUICK_START.md",
                     "Get Started!"
                 );
 
@@ -252,10 +366,26 @@ namespace Synthesis.Editor
                 EditorUtility.DisplayDialog(
                     "Setup Failed",
                     $"Setup encountered an error:\n\n{e.Message}\n\n" +
-                    "You can retry via: Synthesis > Setup > First Time Setup",
+                    "You can retry via: Tools > Synthesis > Setup > First Time Setup",
                     "OK"
                 );
             }
+        }
+
+        private static bool ValidatePythonRuntime()
+        {
+            // Python runtime is bundled at project root: PythonRuntime/python/python.exe
+            string pythonPath = Path.Combine(Application.dataPath, "..", "PythonRuntime", "python", "python.exe");
+
+            if (!File.Exists(pythonPath))
+            {
+                Debug.LogError($"[Synthesis] Python runtime not found at: {pythonPath}");
+                Debug.LogError("[Synthesis] The bundled Python runtime is missing from PythonRuntime/python/");
+                return false;
+            }
+
+            Debug.Log($"[Synthesis] ✅ Python runtime found: {pythonPath}");
+            return true;
         }
 
         private static bool InitializeDatabases()
@@ -265,11 +395,12 @@ namespace Synthesis.Editor
                 // Use Assets/Synthesis.Pro path for consistency
                 string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
                 string serverDir = Path.Combine(packageRoot, "Server");
-                string privateDbPath = Path.Combine(serverDir, "synthesis_private.db");
-                string knowledgeDbPath = Path.Combine(serverDir, "synthesis_knowledge.db");
+                string databaseDir = Path.Combine(serverDir, "database");
+                string privateDbPath = Path.Combine(databaseDir, "synthesis_private.db");
+                string knowledgeDbPath = Path.Combine(databaseDir, "synthesis_knowledge.db");
 
                 // Ensure directory exists
-                Directory.CreateDirectory(serverDir);
+                Directory.CreateDirectory(databaseDir);
 
                 // Run Python database initialization script
                 string ragDir = Path.Combine(packageRoot, "RAG");
@@ -282,12 +413,11 @@ namespace Synthesis.Editor
                     return true;
                 }
 
-                // Run init script with embedded Python (correct path)
-                string pythonExe = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python", "python.exe");
+                // Use bundled Python runtime from project root
+                string pythonExe = Path.Combine(Application.dataPath, "..", "PythonRuntime", "python", "python.exe");
 
                 var process = new System.Diagnostics.Process();
-                // Use embedded Python if available, otherwise fallback to system Python
-                process.StartInfo.FileName = File.Exists(pythonExe) ? pythonExe : "python";
+                process.StartInfo.FileName = pythonExe;
                 process.StartInfo.Arguments = $"\"{initScript}\"";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
@@ -387,135 +517,21 @@ namespace Synthesis.Editor
             }
         }
 
-        private static async Task DownloadPythonRuntime()
+        private static void VerifyPythonEnvironment()
         {
-            string targetDir = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python");
-
-            if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir, "python.exe").Length > 0)
-            {
-                Debug.Log("[Synthesis] Python runtime already exists");
-                return;
-            }
-
-            try
-            {
-                // Clean up partial installation if it exists
-                if (Directory.Exists(targetDir))
-                {
-                    Debug.Log("[Synthesis] Cleaning up partial Python installation...");
-                    Directory.Delete(targetDir, true);
-                }
-
-                httpClient.Timeout = System.TimeSpan.FromMinutes(5);
-
-                Debug.Log("[Synthesis] Downloading Python runtime...");
-                var response = await httpClient.GetAsync(PYTHON_DOWNLOAD_URL);
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new System.Exception($"Download failed: {response.StatusCode}");
-                }
-
-                string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_python_download");
-                Directory.CreateDirectory(tempDir);
-                var zipPath = Path.Combine(tempDir, "python-embedded.zip");
-
-                using (var fs = new FileStream(zipPath, FileMode.Create))
-                {
-                    await response.Content.CopyToAsync(fs);
-                }
-
-                // Extract zip
-                Directory.CreateDirectory(targetDir);
-                System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-
-                // Cleanup
-                Directory.Delete(tempDir, true);
-
-                Debug.Log($"[Synthesis] Python runtime downloaded to {targetDir}");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[Synthesis] Python download failed: {e.Message}");
-                throw;
-            }
-        }
-
-        private static async Task DownloadNodeRuntime()
-        {
-            string targetDir = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "node");
-
-            if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir, "node.exe").Length > 0)
-            {
-                Debug.Log("[Synthesis] Node.js runtime already exists");
-                return;
-            }
-
-            try
-            {
-                httpClient.Timeout = System.TimeSpan.FromMinutes(5);
-
-                Debug.Log("[Synthesis] Downloading Node.js runtime...");
-                var response = await httpClient.GetAsync(NODE_DOWNLOAD_URL);
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new System.Exception($"Download failed: {response.StatusCode}");
-                }
-
-                string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_node_download");
-                Directory.CreateDirectory(tempDir);
-                var zipPath = Path.Combine(tempDir, "node-embedded.zip");
-
-                using (var fs = new FileStream(zipPath, FileMode.Create))
-                {
-                    await response.Content.CopyToAsync(fs);
-                }
-
-                // Extract zip
-                Directory.CreateDirectory(targetDir);
-                System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-
-                // Cleanup
-                Directory.Delete(tempDir, true);
-
-                Debug.Log($"[Synthesis] Node.js runtime downloaded to {targetDir}");
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"[Synthesis] Node.js download failed: {e.Message}");
-                throw;
-            }
-        }
-
-        private static async Task DownloadModels()
-        {
-            // NOTE: Current lightweight stack (BM25S + sentence-transformers) auto-downloads models to cache
-            // No manual model download needed - sentence-transformers/all-MiniLM-L6-v2 downloads on first use
-            string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
-            string targetDir = Path.Combine(packageRoot, "Server", "models");
-
-            // Ensure models directory exists for sentence-transformers cache
-            Directory.CreateDirectory(targetDir);
-            Debug.Log("[Synthesis] Models directory ready (sentence-transformers will auto-download on first use)");
-
-            // Skip download - models auto-cache now
-            await Task.CompletedTask;
-        }
-
-        private static void InitializePythonEnvironment()
-        {
-            // FIXED: Use correct path - Server/python not KnowledgeBase/python
-            string pythonPath = Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", "python", "python.exe");
+            // Bundled Python runtime at project root
+            string pythonPath = Path.Combine(Application.dataPath, "..", "PythonRuntime", "python", "python.exe");
 
             if (!File.Exists(pythonPath))
             {
-                Debug.LogWarning("[Synthesis] Python runtime not found - skipping package installation");
+                Debug.LogWarning("[Synthesis] Python runtime not found - skipping package verification");
                 return;
             }
 
             try
             {
-                // NOTE: Embedded Python runtime should already include required packages:
-                // bm25s, scipy, scikit-learn, sentence-transformers, numpy
+                // NOTE: Bundled Python runtime should already include all required packages:
+                // bm25s, scipy, scikit-learn, sentence-transformers, numpy, mcp
                 // This check verifies the packages are available
 
                 Debug.Log("[Synthesis] Verifying Python packages...");
@@ -538,12 +554,12 @@ namespace Synthesis.Editor
                 {
                     string error = testProcess.StandardError.ReadToEnd();
                     Debug.LogWarning($"[Synthesis] Python package verification failed: {error}");
-                    Debug.LogWarning("[Synthesis] You may need to reinstall the Python runtime package");
+                    Debug.LogWarning("[Synthesis] The bundled Python runtime may be incomplete or corrupted");
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning($"[Synthesis] Python setup warning: {e.Message}");
+                Debug.LogWarning($"[Synthesis] Python verification warning: {e.Message}");
             }
         }
 
@@ -551,17 +567,199 @@ namespace Synthesis.Editor
         {
             // Create some initial entries in knowledge DB
             string packageRoot = Path.Combine(Application.dataPath, "Synthesis.Pro");
-            string knowledgeDbPath = Path.Combine(packageRoot, "Server", "synthesis_knowledge.db");
+            string databaseDir = Path.Combine(packageRoot, "Server", "database");
+            string knowledgeDbPath = Path.Combine(databaseDir, "synthesis_knowledge.db");
 
             if (!File.Exists(knowledgeDbPath))
             {
                 return;
             }
 
-            Debug.Log("[Synthesis] Creating initial knowledge base content");
+            Debug.Log("[Synthesis] Initial knowledge base ready");
+            // Initial content is loaded from seed_public_knowledge.py if needed
+        }
 
-            // Add welcome entry, documentation links, etc.
-            // This will be expanded with actual initial content
+        private static bool DownloadPythonRuntime()
+        {
+            string projectRoot = Path.GetDirectoryName(Application.dataPath);
+            string zipPath = Path.Combine(projectRoot, "python-runtime.zip");
+            string extractPath = Path.Combine(projectRoot, "PythonRuntime");
+
+            try
+            {
+                // PROACTIVE FIX 1: Check disk space before download
+                System.IO.DriveInfo drive = new System.IO.DriveInfo(Path.GetPathRoot(projectRoot));
+                long requiredSpace = PYTHON_RUNTIME_SIZE_MB * 1024 * 1024 * 3; // 3x for zip + extraction + safety
+                if (drive.AvailableFreeSpace < requiredSpace)
+                {
+                    Debug.LogError($"[Synthesis] Insufficient disk space. Need {requiredSpace / (1024*1024)}MB, have {drive.AvailableFreeSpace / (1024*1024)}MB");
+                    EditorUtility.DisplayDialog(
+                        "Insufficient Disk Space",
+                        $"Not enough disk space to download Python runtime.\n\n" +
+                        $"Required: ~{requiredSpace / (1024*1024)}MB\n" +
+                        $"Available: {drive.AvailableFreeSpace / (1024*1024)}MB\n\n" +
+                        "Free up space and try again.",
+                        "OK"
+                    );
+                    return false;
+                }
+
+                // PROACTIVE FIX 2: Clean up partial downloads from previous failures
+                if (File.Exists(zipPath))
+                {
+                    Debug.Log("[Synthesis] Cleaning up previous partial download...");
+                    File.Delete(zipPath);
+                }
+                if (Directory.Exists(extractPath))
+                {
+                    Debug.Log("[Synthesis] Cleaning up previous partial extraction...");
+                    Directory.Delete(extractPath, true);
+                }
+
+                Debug.Log($"[Synthesis] Downloading Python runtime from: {PYTHON_RUNTIME_URL}");
+
+                // PROACTIVE FIX 3: Retry logic for network failures
+                int maxRetries = 3;
+                bool downloadSuccess = false;
+                System.Exception lastException = null;
+
+                for (int attempt = 1; attempt <= maxRetries && !downloadSuccess; attempt++)
+                {
+                    try
+                    {
+                        if (attempt > 1)
+                        {
+                            Debug.Log($"[Synthesis] Retry attempt {attempt}/{maxRetries}...");
+                        }
+
+                        using (var webClient = new System.Net.WebClient())
+                        {
+                            webClient.DownloadProgressChanged += (sender, e) =>
+                            {
+                                float progress = e.ProgressPercentage / 100f;
+                                EditorUtility.DisplayProgressBar("Synthesis Setup",
+                                    $"Downloading Python runtime... {e.ProgressPercentage}% (Attempt {attempt}/{maxRetries})",
+                                    0.1f + (progress * 0.5f));
+                            };
+
+                            // Synchronous download with progress
+                            webClient.DownloadFile(PYTHON_RUNTIME_URL, zipPath);
+                        }
+
+                        downloadSuccess = true;
+                    }
+                    catch (System.Exception e)
+                    {
+                        lastException = e;
+                        Debug.LogWarning($"[Synthesis] Download attempt {attempt} failed: {e.Message}");
+
+                        if (attempt < maxRetries)
+                        {
+                            System.Threading.Thread.Sleep(2000); // Wait 2s before retry
+                        }
+                    }
+                }
+
+                if (!downloadSuccess)
+                {
+                    throw new System.Exception($"Download failed after {maxRetries} attempts: {lastException?.Message}");
+                }
+
+                // PROACTIVE FIX 4: Verify download size before extraction
+                FileInfo zipFile = new FileInfo(zipPath);
+                long minExpectedSize = (PYTHON_RUNTIME_SIZE_MB * 1024 * 1024) / 2; // At least half expected size
+                if (zipFile.Length < minExpectedSize)
+                {
+                    throw new System.Exception($"Downloaded file too small ({zipFile.Length} bytes). Download may be corrupted.");
+                }
+
+                Debug.Log($"[Synthesis] Download complete ({zipFile.Length / (1024*1024)}MB), extracting...");
+
+                // Extract with better error handling
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Extracting Python runtime...", 0.6f);
+
+                try
+                {
+                    ZipFile.ExtractToDirectory(zipPath, extractPath);
+                }
+                catch (System.Exception e)
+                {
+                    throw new System.Exception($"Extraction failed: {e.Message}. Zip file may be corrupted.");
+                }
+
+                // Verify python.exe exists
+                string pythonExe = Path.Combine(extractPath, "python", "python.exe");
+                if (!File.Exists(pythonExe))
+                {
+                    throw new System.Exception($"Python executable not found after extraction at: {pythonExe}. Archive structure may be incorrect.");
+                }
+
+                // PROACTIVE FIX 5: Test Python runs
+                try
+                {
+                    var testProcess = new System.Diagnostics.Process();
+                    testProcess.StartInfo.FileName = pythonExe;
+                    testProcess.StartInfo.Arguments = "--version";
+                    testProcess.StartInfo.UseShellExecute = false;
+                    testProcess.StartInfo.RedirectStandardOutput = true;
+                    testProcess.StartInfo.CreateNoWindow = true;
+                    testProcess.Start();
+
+                    if (!testProcess.WaitForExit(5000))
+                    {
+                        testProcess.Kill();
+                        Debug.LogWarning("[Synthesis] Python test run timed out (may be antivirus scanning)");
+                    }
+                    else if (testProcess.ExitCode != 0)
+                    {
+                        Debug.LogWarning($"[Synthesis] Python test failed with exit code {testProcess.ExitCode}");
+                    }
+                    else
+                    {
+                        string version = testProcess.StandardOutput.ReadToEnd().Trim();
+                        Debug.Log($"[Synthesis] Python runtime verified: {version}");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[Synthesis] Could not verify Python runtime (may be antivirus): {e.Message}");
+                    // Don't fail - antivirus might be scanning
+                }
+
+                // Clean up zip file
+                File.Delete(zipPath);
+
+                Debug.Log("[Synthesis] ✅ Python runtime downloaded and extracted successfully");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Synthesis] Failed to download Python runtime: {e.Message}");
+
+                // PROACTIVE FIX 6: Clean up on failure
+                try
+                {
+                    if (File.Exists(zipPath)) File.Delete(zipPath);
+                    if (Directory.Exists(extractPath)) Directory.Delete(extractPath, true);
+                }
+                catch { /* Ignore cleanup errors */ }
+
+                // PROACTIVE FIX 7: Actionable error message
+                EditorUtility.DisplayDialog(
+                    "Download Failed",
+                    $"Failed to download Python runtime:\n\n{e.Message}\n\n" +
+                    "Troubleshooting:\n" +
+                    "• Check internet connection\n" +
+                    "• Disable antivirus temporarily\n" +
+                    "• Check firewall settings\n" +
+                    "• Verify GitHub is accessible\n" +
+                    "• Try manual download (see docs)\n\n" +
+                    "Check console for details.",
+                    "OK"
+                );
+
+                return false;
+            }
         }
 
         [MenuItem("Tools/Synthesis/Setup/Reset Setup", false, 101)]
@@ -585,6 +783,91 @@ namespace Synthesis.Editor
                     "Reset Complete",
                     "Setup has been reset.\n\n" +
                     "Restart Unity to run first-time setup again.",
+                    "OK"
+                );
+            }
+        }
+
+        [MenuItem("Tools/Synthesis/Setup/Validate Python Runtime", false, 102)]
+        public static void ValidateRuntime()
+        {
+            EditorUtility.DisplayProgressBar("Synthesis", "Validating Python runtime...", 0.5f);
+
+            bool isValid = ValidatePythonRuntime();
+
+            EditorUtility.ClearProgressBar();
+
+            if (isValid)
+            {
+                EditorUtility.DisplayDialog(
+                    "Runtime Valid",
+                    "✅ Python runtime found and validated!\n\n" +
+                    "Location: PythonRuntime/python/python.exe\n\n" +
+                    "All systems ready.",
+                    "OK"
+                );
+            }
+            else
+            {
+                bool shouldDownload = EditorUtility.DisplayDialog(
+                    "Runtime Missing",
+                    "❌ Python runtime not found!\n\n" +
+                    "Expected location: PythonRuntime/python/python.exe\n\n" +
+                    $"Download now? (~{PYTHON_RUNTIME_SIZE_MB}MB)",
+                    "Download",
+                    "Cancel"
+                );
+
+                if (shouldDownload)
+                {
+                    if (DownloadPythonRuntime())
+                    {
+                        EditorUtility.DisplayDialog(
+                            "Download Complete",
+                            "✅ Python runtime downloaded successfully!\n\n" +
+                            "All systems ready.",
+                            "OK"
+                        );
+                    }
+                    else
+                    {
+                        EditorUtility.DisplayDialog(
+                            "Download Failed",
+                            "❌ Failed to download Python runtime.\n\n" +
+                            "Check console for details.",
+                            "OK"
+                        );
+                    }
+                }
+            }
+        }
+
+        [MenuItem("Tools/Synthesis/Setup/Validate Project Structure", false, 103)]
+        public static void ManualValidateStructure()
+        {
+            EditorUtility.DisplayProgressBar("Synthesis", "Validating project structure...", 0.5f);
+
+            try
+            {
+                ValidateAndCorrectStructure();
+                EditorUtility.ClearProgressBar();
+
+                EditorUtility.DisplayDialog(
+                    "Structure Validated",
+                    "✅ Project structure validated and corrected!\n\n" +
+                    "Check console for details.\n\n" +
+                    "This validation runs automatically on Unity startup\n" +
+                    "and ensures everything is in the right place.",
+                    "OK"
+                );
+            }
+            catch (System.Exception e)
+            {
+                EditorUtility.ClearProgressBar();
+                EditorUtility.DisplayDialog(
+                    "Validation Error",
+                    $"Structure validation encountered an error:\n\n{e.Message}\n\n" +
+                    "Check console for details.",
                     "OK"
                 );
             }

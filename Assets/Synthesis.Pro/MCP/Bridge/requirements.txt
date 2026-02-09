@@ -1,0 +1,11 @@
+# Synthesis.MCP Bridge Dependencies
+
+# Async and networking
+websockets>=12.0
+asyncio>=3.4.3
+
+# JSON with comments support
+json5>=0.9.0
+
+# Optional: For advanced MCP protocol
+# mcp>=0.1.0  # When MCP Python SDK is available

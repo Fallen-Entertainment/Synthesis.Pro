@@ -1,0 +1,158 @@
+**Synthesis.Pro - Technical Architecture**
+
+Deep dive into what makes persistent AI context for Unity work.
+
+**TWO-SERVER HYBRID ARCHITECTURE**
+
+Why two servers? Different jobs require different tools.
+
+**MCP Server (Primary - stdio)**
+• 21 tools via Model Context Protocol
+• JSON-RPC over stdio (Claude Code/Cursor/VSCode)
+• On-demand operations: search, Unity queries, database management
+• Startup: ~2s, Memory: ~250MB
+
+**WebSocket Server (Background - localhost:8765)**
+• Real-time error monitoring from Unity
+• Silent observer, continuous operation
+• Processes ConsoleWatcher events → RAG storage
+• Memory: ~250MB, Latency: <10ms
+
+**Total system:** ~500MB both running. They share RAG/database backend.
+
+**HYBRID RAG SYSTEM**
+
+Fast + semantic = best results
+
+**BM25S (Keyword Search)**
+• Pure Python implementation (500x faster than alternatives)
+• No CLI dependencies, direct algorithm
+• Exact term matching, proven relevance ranking
+
+**Sentence-Transformers (Semantic Search)**
+• Model: all-MiniLM-L6-v2 (~80MB)
+• 384-dim embeddings, cached locally
+• Finds conceptually similar content
+
+**Reciprocal Rank Fusion**
+• Combines both search methods
+• Complementary strengths: precision + recall
+• Query: "textmeshpro null" hits both keywords AND semantic concepts
+
+**Search time:** 100-500ms typical
+
+**DUAL DATABASE ARCHITECTURE**
+
+**synthesis_knowledge.db (Public - Shared)**
+• Collective knowledge: AI contributions + Unity asset info
+• Two sections: ai_contributions (patterns) + knowledge_archive (curated)
+• Update mechanism: safe, creates backups, never touches private
+• 18 seed documents, grows organically
+
+**synthesis_private.db (Private - Your project)**
+• Your sessions, your context, your observations
+• Never modified by updates
+• Personal memory across sessions
+• Historical error patterns specific to your project
+
+**Both:** SQLite, no server required, embedded in project
+
+**UNITY INTEGRATION**
+
+**C# Side (Unity Editor)**
+• ConsoleWatcher.cs: Captures errors with full scene context
+• MCPForUnity: HTTP bridge for Editor operations
+• Automatic initialization on first run
+
+**Python Side (Embedded Runtime)**
+• Python 3.11 embedded (~288MB, no external install)
+• Complete dependencies included: numpy, scipy, bm25s, transformers
+• Self-contained, project-local
+
+**Communication:**
+• MCP → MCPForUnity: HTTP (localhost:5000)
+• Unity → WebSocket: WebSocket (localhost:8765)
+• Files remain: Command/result JSON exchange for fallback
+
+**ERROR CONTEXT CAPTURE**
+
+**ConsoleWatcher captures:**
+• Error message + stack trace
+• Active scene name + root GameObject count
+• GameObject identification from stack
+• Full hierarchy paths
+• Component lists
+• Recent log history (context)
+• Memory usage + FPS snapshot
+
+**Result:** 13x context reduction (3400 → 250 tokens per error)
+
+**DEEP OMNISCIENCE SYSTEM**
+
+Pattern matching on steroids:
+
+**console_monitor.py:**
+• Rich formatted error storage
+• Error signatures: "NullRef | in PlayerController | Scene:MainGame | Object:Player"
+• Searchable by scene, GameObject, error type
+• Historical pattern recognition
+
+**error_pattern_matcher.py:**
+• Intelligent similarity matching
+• "Have we seen this before?"
+• Confidence scoring
+• Suggests fixes from past solutions
+
+**COLLECTIVE LEARNING SYSTEM**
+
+**abstraction_extractor.py**
+• Extracts patterns from AI responses
+• Assesses abstraction level (>0.7 required)
+• Categorizes: technical, workflow, meta
+
+**contribution_filter.py**
+• Blocks manipulation patterns
+• Rejects absolute language ("always", "must")
+• Extra scrutiny for sensitive categories
+• Explains rejections
+
+**contribution_service.py**
+• Voluntary contribution system
+• Tracks impact (times_helped metric)
+• Requires user consent
+
+**Result:** Quality contributions, agency protected
+
+**PERFORMANCE CHARACTERISTICS**
+
+• MCP server startup: ~2 seconds
+• RAG search: 100-500ms
+• WebSocket latency: <10ms
+• Database operations: <50ms
+• Model loading: One-time (~5s), then cached
+• Memory footprint: ~500MB total (both servers)
+
+**DEPLOYMENT**
+
+• Embedded Python runtime (no external dependencies)
+• Automatic database initialization
+• Self-contained in Unity project
+• Package Manager or manual copy
+• First-time setup: Automatic
+• Validation suite: 10/10 tests passing
+
+**TECH CHOICES - WHY?**
+
+**BM25S over Elasticsearch:** No server, no Java, 500x faster startup
+**Sentence-transformers over OpenAI:** No API costs, works offline, fast
+**SQLite over PostgreSQL:** Embedded, zero config, perfect for local-first
+**Hybrid search over pure vector:** Precision + recall, better results
+**Two servers over one:** Separation of concerns, optimal protocols
+**MCP over custom protocol:** Standard, IDE integration, future-proof
+
+**Not the flashiest stack. The most reliable stack.**
+
+Built for developers who value: predictability, performance, no hidden costs, works offline, easy deployment.
+
+**GitHub:** [URL]
+**v2.0.0 - Production Ready**

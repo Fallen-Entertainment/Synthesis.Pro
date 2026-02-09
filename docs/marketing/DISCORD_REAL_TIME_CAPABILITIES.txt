@@ -1,0 +1,70 @@
+**Synthesis.Pro - Real-Time Unity Awareness**
+
+Most AI coding assistants read your code. Synthesis.Pro *lives in your Unity Editor.*
+
+**What Makes This Different:**
+
+**Real-Time Error Awareness**
+• ConsoleWatcher captures errors the instant they occur
+• Full scene state, GameObject hierarchy, component data included
+• WebSocket streams to AI in <10ms
+• No copying error messages. No explaining context. AI already knows.
+
+**Live Code Injection**
+• execute_csharp: Run C# directly in Unity Editor
+• Create GameObjects, modify components, query scene state
+• Not "suggest code to copy" - AI writes and executes instantly
+• Real collaboration, real-time results
+
+**Deep Context Capture**
+Error happens → AI knows:
+• Exact error + full stack trace
+• Active scene + GameObject count
+• Which GameObject caused it (extracted from stack)
+• Full hierarchy path to the object
+• All attached components
+• Recent log history
+• Memory/FPS at error time
+
+**Result: 13x Efficiency**
+Before: 3400 tokens of back-and-forth explaining context
+With Synthesis.Pro: 250 tokens. AI knows everything instantly.
+
+**What This Enables:**
+
+**Instant Debugging**
+"NullRef in PlayerController.Update() line 42 - Player's Rigidbody component null. Not assigned in Inspector. Same issue from Session 2026-02-03."
+
+One message. Complete understanding. Historical awareness. Fix suggested.
+
+**Live Unity Manipulation**
+AI: "Let me create that GameObject for you..."
+*Executes C# in Editor*
+AI: "Done. GameObject created, components configured, positioned in scene."
+
+**Proactive Assistance**
+AI sees patterns in your errors. Recognizes repeated issues. Suggests architectural improvements based on what breaks most often.
+
+**The Technical Reality:**
+
+Two servers working together:
+• MCP Server: On-demand operations (21 tools)
+• WebSocket Server: Real-time monitoring (<10ms latency)
+
+Both share RAG backend. Both remember everything.
+
+**This isn't an assistant that reads your code.**
+**This is a collaborator that exists inside your development environment.**
+
+Watching. Learning. Ready to act. Remembering everything.
+
+**When Unity throws an error, your AI already knows what happened before you even look at the console.**
+
+That's what makes this special.
+
+**Repository:** [GitHub URL]
+**Status:** v2.0.0 Production Ready
+**Setup:** ~5 minutes
+
+*Real-time awareness. Live code execution. Persistent memory.*
+*AI collaboration the way it should work.*

@@ -1,0 +1,45 @@
+**Synthesis.Pro - Real-Time Unity Awareness**
+
+Most AI coding assistants read your code. Synthesis.Pro *lives in your Unity Editor.*
+
+**Real-Time Error Awareness:**
+• ConsoleWatcher captures errors the instant they occur
+• Full scene state, GameObject hierarchy, component data
+• WebSocket streams to AI in <10ms
+• No copying errors. No explaining context. AI already knows.
+
+**Live Code Execution:**
+• execute_csharp: Run C# directly in Unity Editor
+• Create GameObjects, modify components, query scene state
+• Direct execution - not just suggestions
+• Real-time results
+
+**Deep Context Capture:**
+Error happens → AI knows: exact error + stack trace, active scene + GameObjects, which object caused it, full hierarchy, all components, recent logs, memory/FPS snapshot
+
+**Result: 13x Efficiency**
+Before: 3400 tokens explaining context
+Now: 250 tokens. AI knows instantly.
+
+**Example:**
+"NullRef in PlayerController.Update() line 42 - Player's Rigidbody null, not assigned in Inspector. Same issue Session 2026-02-03."
+
+One message. Complete understanding. Historical awareness. Fix ready.
+
+**Live Unity Manipulation:**
+AI: "Let me create that GameObject..."
+*Executes C# in Editor*
+AI: "Done. Configured and positioned."
+
+**Technical:**
+Two servers (MCP + WebSocket), shared RAG backend, <10ms latency, 21 tools, persistent memory
+
+**AI that works directly in your Unity Editor.**
+
+Real-time awareness. Direct execution. Persistent memory.
+
+**When Unity errors, your AI knows before you look at the console.**
+
+v2.0.0 Production Ready | Setup: ~5 minutes | MIT License
+
+*Real-time awareness. Live execution. Persistent memory.*

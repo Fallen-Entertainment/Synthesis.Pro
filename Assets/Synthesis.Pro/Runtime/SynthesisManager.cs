@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using Synthesis.Pro;
 
 namespace Synthesis.Bridge
 {
@@ -71,6 +72,12 @@ namespace Synthesis.Bridge
 
             instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // PROACTIVE FIX: Clean up orphaned Python processes from previous crashes
+            CleanupOrphanedProcesses();
+
+            // Ensure runtime directory exists - buttery and creamy setup
+            SynthesisPaths.EnsureRuntimeExists();
 
             // Auto-create components if needed
             if (autoCreateComponents)
@@ -434,10 +441,18 @@ namespace Synthesis.Bridge
 
                 Log($"Starting server: {serverPath}");
 
+                // Use bundled Python runtime (buttery and creamy!)
+                string pythonExe = Path.Combine(Application.dataPath, "..", "PythonRuntime", "python", "python.exe");
+                if (!File.Exists(pythonExe))
+                {
+                    LogError($"Bundled Python runtime not found at: {pythonExe}");
+                    return;
+                }
+
                 // Create process start info
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
-                    FileName = "python",
+                    FileName = pythonExe,
                     Arguments = $"\"{serverPath}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -493,6 +508,7 @@ namespace Synthesis.Bridge
 
         /// <summary>
         /// Stop the Python WebSocket server process
+        /// ENHANCED: Better error handling and forced cleanup
         /// </summary>
         private void StopServer()
         {
@@ -506,8 +522,23 @@ namespace Synthesis.Bridge
                 if (!serverProcess.HasExited)
                 {
                     Log("Stopping server process...");
-                    serverProcess.Kill();
-                    serverProcess.WaitForExit(2000); // Wait up to 2 seconds
+
+                    try
+                    {
+                        // Try graceful shutdown first
+                        serverProcess.Kill();
+                        if (!serverProcess.WaitForExit(3000))
+                        {
+                            // Force kill if still running
+                            serverProcess.Kill();
+                            serverProcess.WaitForExit(1000);
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        LogWarning($"Process termination warning: {ex.Message}");
+                    }
+
                     Log("Server process stopped");
                 }
 
@@ -525,18 +556,74 @@ namespace Synthesis.Bridge
         }
 
         /// <summary>
+        /// Clean up orphaned Python processes from previous Unity crashes
+        /// PROACTIVE: Prevents port conflicts and resource leaks
+        /// Simplified approach using process path checking
+        /// </summary>
+        private void CleanupOrphanedProcesses()
+        {
+            try
+            {
+                // Find all python.exe processes
+                var pythonProcesses = Process.GetProcessesByName("python");
+
+                if (pythonProcesses.Length > 0)
+                {
+                    Log($"Checking {pythonProcesses.Length} Python process(es) for orphans...");
+
+                    foreach (var process in pythonProcesses)
+                    {
+                        try
+                        {
+                            // Check if process is from our PythonRuntime
+                            if (process.MainModule != null)
+                            {
+                                string exePath = process.MainModule.FileName.ToLower();
+
+                                // Only kill if it's from our PythonRuntime or Synthesis.Pro folder
+                                if (exePath.Contains("pythonruntime") ||
+                                    exePath.Contains("synthesis.pro") ||
+                                    exePath.Contains("synthesis-pro"))
+                                {
+                                    Log($"Cleaning up orphaned Python process (PID: {process.Id})");
+                                    process.Kill();
+                                    process.WaitForExit(2000);
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Process may have exited, access denied, or system process - safely ignore
+                        }
+                        finally
+                        {
+                            process.Dispose();
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                // Don't fail startup if cleanup fails
+                LogWarning($"Orphaned process cleanup warning: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Find the server script path
         /// </summary>
         private string FindServerPath()
         {
-            // Try to find server relative to this script
-            // Typical paths:
-            // - Assets/Synthesis.Pro/Server/websocket_server.py
-            // - Packages/com.synthesis.pro/Server/websocket_server.py
+            // Try centralized path first (buttery!)
+            string primaryPath = Path.Combine(SynthesisPaths.Server, serverExecutableName);
+            if (File.Exists(primaryPath))
+            {
+                return primaryPath;
+            }
 
+            // Fallback paths for package installations
             string[] searchPaths = new string[]
             {
-                Path.Combine(Application.dataPath, "Synthesis.Pro", "Server", serverExecutableName),
                 Path.Combine(Application.dataPath, "..", "Packages", "Synthesis.Pro", "Server", serverExecutableName),
                 Path.Combine(Application.dataPath, "..", "Packages", "com.synthesis.pro", "Server", serverExecutableName),
                 Path.Combine(Application.dataPath, "..", "Synthesis.Pro", "Server", serverExecutableName)

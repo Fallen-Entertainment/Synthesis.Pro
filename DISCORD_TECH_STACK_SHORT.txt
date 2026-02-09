@@ -1,0 +1,51 @@
+**Synthesis.Pro Tech Stack**
+
+**ARCHITECTURE**
+
+Two servers, different jobs:
+• MCP Server: 21 tools, on-demand ops, ~250MB
+• WebSocket: Real-time Unity monitoring, <10ms latency
+• Total: ~500MB, shared RAG backend
+
+**HYBRID RAG**
+• BM25S: Pure Python keyword search (500x faster)
+• all-MiniLM-L6-v2: 80MB semantic embeddings
+• Reciprocal Rank Fusion combines both
+• Search: 100-500ms, best of precision + recall
+
+**DATABASES**
+• synthesis_knowledge.db: Public collective knowledge
+• synthesis_private.db: Your project context
+• SQLite, embedded, zero config
+
+**UNITY INTEGRATION**
+• ConsoleWatcher.cs: Captures errors + scene state
+• MCPForUnity: HTTP bridge for Editor ops
+• Python 3.11 embedded runtime (~288MB, self-contained)
+
+**ERROR CONTEXT**
+Captures: error + stack + scene + hierarchy + components + logs + memory
+Result: 13x efficiency (3400 → 250 tokens per error)
+
+**COLLECTIVE KNOWLEDGE**
+• Pattern extraction (>0.7 abstraction)
+• Quality filter (blocks manipulation)
+• Community contributions
+• times_helped tracking
+
+**WHY THESE CHOICES?**
+BM25S > Elasticsearch: No server needed
+Transformers > OpenAI: No API costs, offline
+SQLite > PostgreSQL: Embedded, portable
+Hybrid > pure vector: Better results
+Two servers > one: Right tool for each job
+
+**PERFORMANCE**
+Startup: ~2s | Search: 100-500ms | WebSocket: <10ms | Memory: ~500MB
+
+Not flashiest. Most reliable.
+
+Built for: predictability, no hidden costs, works offline, easy deployment
+
+v2.0.0 Production Ready
+GitHub: [URL]

@@ -37,9 +37,8 @@ namespace Synthesis.Editor
         {
             "Mesh.colors",
             "obsolete",
-            "deprecated",
-            "URP",
-            "Shader Graphs"
+            "deprecated"
+            // Removed "URP" and "Shader Graphs" - these can indicate real problems
         };
 
         private static string[] importantKeywords = new string[]
@@ -153,13 +152,11 @@ namespace Synthesis.Editor
             }
         }
 
-        private static void ScheduleReconnect()
+        private static async void ScheduleReconnect()
         {
-            EditorApplication.delayCall += () =>
-            {
-                System.Threading.Thread.Sleep(5000); // Wait 5 seconds
-                ConnectAsync();
-            };
+            // Wait 5 seconds without blocking the main thread
+            await Task.Delay(5000);
+            ConnectAsync();
         }
 
         private static async Task ReceiveLoop()
@@ -314,7 +311,7 @@ namespace Synthesis.Editor
 
         private static async void SendBatch()
         {
-            if (pendingEntries.Count == 0 || !isConnected)
+            if (pendingEntries.Count == 0)
                 return;
 
             try
@@ -324,21 +321,29 @@ namespace Synthesis.Editor
                 {
                     id = $"console_editor_{DateTime.Now.Ticks}",
                     type = "console_log",
+                    timestamp = DateTime.Now.ToString("o"),
                     parameters = new
                     {
                         entries = ConvertEntriesToObjects(pendingEntries)
                     }
                 };
 
-                string json = JsonConvert.SerializeObject(command);
-                byte[] bytes = Encoding.UTF8.GetBytes(json);
+                string json = JsonConvert.SerializeObject(command, Formatting.Indented);
 
-                await webSocket.SendAsync(
-                    new ArraySegment<byte>(bytes),
-                    WebSocketMessageType.Text,
-                    true,
-                    cancellationToken.Token
-                );
+                // CRITICAL: Always write to file so AI can read errors even if WebSocket is down
+                WriteToFallbackFile(json);
+
+                // Try to send via WebSocket if connected
+                if (isConnected && webSocket?.State == WebSocketState.Open)
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(json);
+                    await webSocket.SendAsync(
+                        new ArraySegment<byte>(bytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        cancellationToken.Token
+                    );
+                }
 
                 // Clear batch
                 pendingEntries.Clear();
@@ -349,6 +354,20 @@ namespace Synthesis.Editor
                 Debug.LogWarning($"[ConsoleWatcher Editor] Send error: {e.Message}");
                 isConnected = false;
                 ScheduleReconnect();
+            }
+        }
+
+        private static void WriteToFallbackFile(string json)
+        {
+            try
+            {
+                // Use centralized path - buttery and creamy
+                string fallbackPath = Synthesis.Pro.SynthesisPaths.ConsoleErrors;
+                System.IO.File.WriteAllText(fallbackPath, json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ConsoleWatcher Editor] Failed to write fallback file: {e.Message}");
             }
         }
 

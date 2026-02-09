@@ -44,7 +44,7 @@ decisions = [
     },
     {
         "decision": "Use embedded Python for RAG operations",
-        "rationale": "Found embedded Python at Server/python/python.exe. Enables offline operation without external Python installation."
+        "rationale": "Found embedded Python at PythonRuntime/python/python.exe (project root). Enables offline operation without external Python installation."
     },
     {
         "decision": "Log VFX findings immediately to private DB",
