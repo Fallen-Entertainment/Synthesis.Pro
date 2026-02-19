@@ -130,6 +130,17 @@ runtime-packages/
 *claudia*
 CLAUDIAOS_VISION.md
 
+# Claudine training infrastructure - private, not for team
+Assets/Synthesis.Pro/Server/extract_from_transcripts.py
+Assets/Synthesis.Pro/Server/extract_training_data.py
+Assets/Synthesis.Pro/Server/optimize_ollama_config.py
+Assets/Synthesis.Pro/Server/save_optimization_results.py
+Assets/Synthesis.Pro/Server/training_data/
+Assets/Synthesis.Pro/Server/check_claudine_status.py
+Assets/Synthesis.Pro/Server/update_claudine_training_status.py
+Assets/Synthesis.Pro/Server/claudine_api.py
+Assets/Synthesis.Pro/Server/talk_to_claudine.bat
+
 # Synthesis.Pro - Test artifacts
 Synthesis.Pro/Server/test_*.json
 
